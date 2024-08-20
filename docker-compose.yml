@@ -1,0 +1,47 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: coinex-prices 
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql 
+
+  nestjs:
+    build: ./nestjs
+    restart: always
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/coinex-prices 
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+
+  python:
+    build: ./python
+    restart: always
+    environment:
+      APIKEYCOINEX: ${APIKEYCOINEX}
+      APISECRETKEYCOINEX: ${APISECRETKEYCOINEX}
+      DBNAME: coinex-prices
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: postgres
+    volumes:
+      - ./python:/app
+      - ./coins/coin_list.txt:/app/coins/coin_list.txt
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

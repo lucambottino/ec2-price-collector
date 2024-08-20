@@ -1,0 +1,7 @@
+pandas
+psycopg2
+python-dotenv
+requests
+websocket-client
+logging
+asyncio
