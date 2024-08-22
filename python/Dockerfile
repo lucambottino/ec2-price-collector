@@ -1,6 +1,9 @@
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
+# Install PostgreSQL development libraries
+RUN apt-get update && apt-get install -y gcc libpq-dev
+
 # Set the working directory in the container
 WORKDIR /app
 
@@ -13,8 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
-# Ensure the initialize_coins.py script is executable
-RUN chmod +x /app/coins/initialize_coins.py
+# Ensure the initialization scripts are executable
+RUN chmod +x /app/scripts/ws_coinex.py /app/scripts/ws_binance.py
 
-# Command to run the initialization and main application
-CMD ["bash", "-c", "python /app/coins/initialize_coins.py && python main.py"]
+# Default command to keep the container running (e.g., start ws_coinex or ws_binance)
+CMD ["bash"]

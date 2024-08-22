@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: coinex-prices 
+      POSTGRES_DB: coinex-prices
     logging:
       options:
         max-size: "10m"
@@ -15,19 +15,14 @@ services:
       - "5432:5432"
     volumes:
       - ./data:/var/lib/postgresql/data
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql 
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  nestjs:
-    build: ./nestjs
-    restart: always
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/coinex-prices 
-    ports:
-      - "3000:3000"
-    depends_on:
-      - postgres
-
-  python:
+  ws_coinex:
     build: ./python
     restart: always
     environment:
@@ -37,11 +32,38 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_HOST: postgres
+      DB_PORT: 5432
+    command: ["python", "/app/scripts/ws_coinex.py"]
     volumes:
       - ./python:/app
-      - ./coins/coin_list.txt:/app/coins/coin_list.txt
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
-volumes:
-  postgres_data:
+
+  # nestjs:
+  #   build: ./nestjs
+  #   restart: always
+  #   environment:
+  #     DATABASE_URL: postgres://postgres:postgres@postgres:5432/coinex-prices 
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - postgres
+
+
+  # ws_binance:
+  #   build: ./python
+  #   restart: always
+  #   environment:
+  #     APIKEYCOINEX: ${APIKEYCOINEX}
+  #     APISECRETKEYCOINEX: ${APISECRETKEYCOINEX}
+  #     DB_NAME: coinex-prices
+  #     DB_USER: postgres
+  #     DB_PASSWORD: postgres
+  #     DB_HOST: postgres
+  #   command: ["python", "/app/scripts/ws_binance.py"]
+  #   volumes:
+  #     - ./python:/app
+  #   depends_on:
+  #     - postgres

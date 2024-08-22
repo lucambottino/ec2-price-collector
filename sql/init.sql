@@ -1,20 +1,20 @@
--- Create the database if it doesn't exist
-CREATE DATABASE coinex_prices
-    WITH 
-    OWNER = postgres
-    ENCODING = 'UTF8'
-    CONNECTION LIMIT = -1;
+-- Remove database creation as it's handled by the environment variables.
 
--- Connect to the new database
-\connect coinex_prices;
+-- Create ENUM type for exchange if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'exchange_enum') THEN
+        CREATE TYPE exchange_enum AS ENUM ('BINANCE', 'COINEX');
+    END IF;
+END $$;
 
--- Create the coins_table to store unique coin names
+-- Create coins_table if it doesn't exist
 CREATE TABLE IF NOT EXISTS coins_table (
     coin_id SERIAL PRIMARY KEY,
     coin_name TEXT UNIQUE NOT NULL
 );
 
--- Create the coin_data_table with a foreign key reference to coins_table
+-- Create coin_data_table if it doesn't exist
 CREATE TABLE IF NOT EXISTS coin_data_table (
     data_id SERIAL PRIMARY KEY,
     coin_id INT REFERENCES coins_table(coin_id),
@@ -24,11 +24,7 @@ CREATE TABLE IF NOT EXISTS coin_data_table (
     best_bid_qty REAL,
     best_ask_qty REAL,
     mark_price REAL,
-    market TEXT,
-    best_bid_price REAL,
-    best_bid_size REAL,
-    best_ask_price REAL,
-    best_ask_size REAL,
-    price REAL,
-    updated_at TIMESTAMPTZ
+    last_price REAL,  
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, 
+    exchange exchange_enum NOT NULL, 
 );
