@@ -103,6 +103,9 @@ class CoinexWebSocket:
 
     def on_message(self, ws, message):
         parsed_msg = self.decompress_message(message)
+
+        print(f"Received message: {parsed_msg}")
+
         if "data" in parsed_msg:
             data = parsed_msg["data"]
             token = data["market"]
@@ -121,7 +124,7 @@ class CoinexWebSocket:
 
             try:
                 self.insert_data_into_db(parsed_data)
-                #print(f"Data inserted into DB: {parsed_data}")
+                # print(f"Data inserted into DB: {parsed_data}")
             except Exception as e:
                 print(f"Error inserting data into DB: {e}")
 
@@ -162,6 +165,8 @@ if __name__ == "__main__":
 
     access_id = os.getenv("APIKEYCOINEX")
     signed_str = os.getenv("APISECRETKEYCOINEX")
+    print(f"Access ID: {access_id}")
+    print(f"Signed String: {signed_str}")
 
     coinex_ws = CoinexWebSocket(access_id, signed_str, COIN_LIST, db_manager)
     try:
