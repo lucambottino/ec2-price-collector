@@ -14,6 +14,7 @@ set -a
 source "$(dirname "$0")/.env"
 set +a
 
+
 # Export data older than 7 days to a CSV file
 EXPORT_FILE="/tmp/old_data_$(date +\%Y\%m\%d).csv"
 log_message "Exporting data older than 7 days to $EXPORT_FILE."
