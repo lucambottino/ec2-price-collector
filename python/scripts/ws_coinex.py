@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import gzip
 import requests
 import psycopg2
+from datetime import datetime
 
 from coin_list import COIN_LIST
 
@@ -92,6 +93,9 @@ class CoinexWebSocket:
 
     def insert_data_into_db(self, parsed_data):
         try:
+            # Convert Unix timestamp in milliseconds to timestamp
+            timestamp = datetime.fromtimestamp(parsed_data["timestamp"] / 1000.0)
+
             self.cursor.execute(
                 "SELECT coin_id FROM coins_table WHERE coin_name = %s",
                 (parsed_data["symbol"],),
@@ -119,14 +123,14 @@ class CoinexWebSocket:
                 insert_query,
                 (
                     coin_id,
-                    parsed_data["timestamp"],
+                    timestamp,  # Use the converted timestamp here
                     parsed_data["best_bid"],
                     parsed_data["best_ask"],
                     parsed_data["best_bid_qty"],
                     parsed_data["best_ask_qty"],
                     parsed_data["mark_price"],
                     parsed_data["last_price"],
-                    parsed_data["timestamp"],
+                    timestamp,  # Use the converted timestamp for updated_at as well
                     "COINEX",
                 ),
             )
