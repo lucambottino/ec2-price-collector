@@ -8,6 +8,15 @@ log_message() {
 # Start logging
 log_message "Script started."
 
+# Check if an argument is provided for the number of days
+if [ -z "$1" ]; then
+    log_message "No argument provided. Defaulting to 7 days."
+    DAYS=7
+else
+    DAYS=$1
+    log_message "Running the script for data older than $DAYS days."
+fi
+
 # Load environment variables from .env file
 log_message "Loading environment variables."
 set -a
@@ -24,11 +33,15 @@ for TABLE in "${!TABLES[@]}"; do
     
     if [ -n "$DATE_COLUMN" ]; then
         EXPORT_FILE="/tmp/${TABLE}_old_data_$(date +\%Y\%m\%d).csv"
-        log_message "Exporting data older than 7 days from table $TABLE using $DATE_COLUMN to $EXPORT_FILE."
         
-        # Export data older than 7 days to a CSV file
-        PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '7 days') TO '$EXPORT_FILE' WITH CSV HEADER"
-        
+        if [ "$DAYS" -eq 0 ]; then
+            log_message "Exporting ALL data from table $TABLE to $EXPORT_FILE."
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH CSV HEADER"
+        else
+            log_message "Exporting data older than $DAYS days from table $TABLE using $DATE_COLUMN to $EXPORT_FILE."
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH CSV HEADER"
+        fi
+
         if [ $? -eq 0 ]; then
             log_message "Data export from table $TABLE successful."
         else
@@ -58,13 +71,17 @@ for TABLE in "${!TABLES[@]}"; do
         fi
         
         # Delete old data from the table
-        log_message "Deleting old data from table $TABLE."
-        PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '7 days';"
-        
-        if [ $? -eq 0 ]; then
-            log_message "Old data deletion from table $TABLE successful."
+        if [ "$DAYS" -ne 0 ]; then
+            log_message "Deleting old data from table $TABLE."
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days';"
+            
+            if [ $? -eq 0 ]; then
+                log_message "Old data deletion from table $TABLE successful."
+            else
+                log_message "Old data deletion from table $TABLE failed."
+            fi
         else
-            log_message "Old data deletion from table $TABLE failed."
+            log_message "Skipping data deletion for table $TABLE because ALL data is being exported."
         fi
     else
         log_message "Skipping table $TABLE because it doesn't have a date column."
