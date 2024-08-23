@@ -41,4 +41,9 @@ export class CoinsController {
   ): Promise<CoinData[]> {
     return this.coinsService.findAllByCoinNameAndExchange(coin_name, exchange);
   }
+
+  @Get('data/:coin_name/last')
+  async getMostRecentPriceByCoinName(@Param('coin_name') coin_name: string) {
+    return this.coinsService.findMostRecentPriceByCoinName(coin_name);
+  }
 }

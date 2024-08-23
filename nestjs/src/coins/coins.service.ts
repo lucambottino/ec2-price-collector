@@ -56,6 +56,31 @@ export class CoinsService {
     });
   }
 
+  async findMostRecentPriceByCoinName(coin_name: string): Promise<any[]> {
+    const coin = await this.coinsRepository.findOne({ where: { coin_name } });
+    if (!coin) {
+      throw new Error('Coin not found');
+    }
+
+    return this.coinDataRepository
+      .createQueryBuilder('coin_data')
+      .innerJoin(
+        (qb) =>
+          qb
+            .select('exchange')
+            .addSelect('MAX(timestamp)', 'max_timestamp')
+            .from(CoinData, 'coin_data')
+            .where('coin_data.coin_id = :coin_id', { coin_id: coin.coin_id })
+            .groupBy('exchange'),
+        'max_data',
+        'coin_data.exchange = max_data.exchange AND coin_data.timestamp = max_data.max_timestamp',
+      )
+      .select('coin_data') // Select all fields from coin_data
+      .where('coin_data.coin_id = :coin_id', { coin_id: coin.coin_id })
+      .orderBy('coin_data.timestamp', 'DESC')
+      .getMany();
+  }
+
   // Get coin data by coin ID
   async findCoinData(coin_id: number): Promise<CoinData[]> {
     return this.coinDataRepository.find({ where: { coin: { coin_id } } });
