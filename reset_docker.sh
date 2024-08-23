@@ -1,8 +1,18 @@
 #!/bin/bash
 
 # Step 1: Delete the data folder
-echo "Deleting the data folder..."
-rm -rf ./data
+# Step 1: Check if the script has the right access to the data folder
+if [ -d "./data" ]; then
+  if [ -w "./data" ] && [ -x "./data" ]; then
+    echo "Access check passed: Deleting the data folder..."
+    rm -rf ./data
+  else
+    echo "Error: Insufficient permissions to delete the data folder."
+    exit 1
+  fi
+else
+  echo "Data folder does not exist. Skipping deletion."
+fi
 
 # Step 2: Bring down Docker containers
 echo "Bringing down Docker containers..."
