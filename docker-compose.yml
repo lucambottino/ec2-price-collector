@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   postgres:
-    image: postgres:13
+    image: postgres:13.4  # Pin to a specific version for stability
     restart: always
     environment:
       POSTGRES_USER: postgres
@@ -17,7 +17,7 @@ services:
       - ./data:/var/lib/postgresql/data
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,7 +28,7 @@ services:
     environment:
       APIKEYCOINEX: ${APIKEYCOINEX}
       APISECRETKEYCOINEX: ${APISECRETKEYCOINEX}
-      DBNAME: coinex-prices
+      DB_NAME: coinex-prices
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_HOST: postgres
@@ -40,6 +40,17 @@ services:
       postgres:
         condition: service_healthy
 
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
 
   # nestjs:
   #   build: ./nestjs

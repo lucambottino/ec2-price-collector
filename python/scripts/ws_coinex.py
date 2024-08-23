@@ -92,7 +92,6 @@ class CoinexWebSocket:
 
     def insert_data_into_db(self, parsed_data):
         try:
-
             self.cursor.execute(
                 "SELECT coin_id FROM coins_table WHERE coin_name = %s",
                 (parsed_data["symbol"],),
@@ -155,8 +154,11 @@ class CoinexWebSocket:
                 "timestamp": data["updated_at"],
             }
 
-            # self.insert_data_into_db(parsed_data)
-            print(parsed_data)
+            try:
+                self.insert_data_into_db(parsed_data)
+                print(f"Data inserted into DB: {parsed_data}")
+            except Exception as e:
+                print(f"Error inserting data into DB: {e}")
 
     def on_error(self, ws, error):
         print(f"Error: {error}")
@@ -196,7 +198,6 @@ if __name__ == "__main__":
 
     coinex_ws = CoinexWebSocket(access_id, signed_str, COIN_LIST)
     try:
-        # coinex_ws.run()
-        print("Hey")
+        coinex_ws.run()
     finally:
         coinex_ws.close_db_connection()

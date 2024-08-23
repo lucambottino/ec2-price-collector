@@ -1,5 +1,3 @@
--- Remove database creation as it's handled by the environment variables.
-
 -- Create ENUM type for exchange if it doesn't exist
 DO $$ 
 BEGIN
@@ -26,5 +24,5 @@ CREATE TABLE IF NOT EXISTS coin_data_table (
     mark_price REAL,
     last_price REAL,  
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, 
-    exchange exchange_enum NOT NULL, 
+    exchange exchange_enum NOT NULL
 );
