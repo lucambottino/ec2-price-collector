@@ -38,13 +38,6 @@ class CoinexWebSocket:
         decompressed_str = decompressed_bytes.decode("utf-8")
         return json.loads(decompressed_str)
 
-    @staticmethod
-    def get_binance_future_price(token):
-        r = requests.get(
-            f"https://fapi.binance.com/fapi/v2/ticker/price?symbol={token}"
-        )
-        return float(json.loads(r.content)["price"])
-
     def create_subscription_request(self):
         payload = {
             "method": "bbo.subscribe",
@@ -108,8 +101,6 @@ class CoinexWebSocket:
 
         if "data" in parsed_msg:
             data = parsed_msg["data"]
-            token = data["market"]
-            data["price"] = self.get_binance_future_price(token)
 
             parsed_data = {
                 "symbol": data["market"],
@@ -117,8 +108,8 @@ class CoinexWebSocket:
                 "best_ask": data["best_ask_size"],
                 "best_bid_qty": data["best_bid_size"],
                 "best_ask_qty": data["best_ask_size"],
-                "mark_price": data["price"],
-                "last_price": data["price"],
+                "mark_price": None,
+                "last_price": None,
                 "timestamp": data["updated_at"],
             }
 
