@@ -10,11 +10,20 @@ log_message "Script started."
 
 # Check if an argument is provided for the number of days
 if [ -z "$1" ]; then
-    log_message "No argument provided. Defaulting to 7 days."
+    log_message "No argument provided for days. Defaulting to 7 days."
     DAYS=7
 else
     DAYS=$1
     log_message "Running the script for data older than $DAYS days."
+fi
+
+# Check if an argument is provided for the format
+if [ -z "$2" ]; then
+    log_message "No format argument provided. Defaulting to CSV."
+    FORMAT="csv"
+else
+    FORMAT=$2
+    log_message "Exporting data in $FORMAT format."
 fi
 
 # Load environment variables from .env file
@@ -30,16 +39,27 @@ TABLES=( ["coins_table"]="" ["coin_data_table"]="updated_at" )
 # Iterate over each table
 for TABLE in "${!TABLES[@]}"; do
     DATE_COLUMN=${TABLES[$TABLE]}
-    
+    EXPORT_FILE="/tmp/${TABLE}_old_data_$(date +\%Y\%m\%d).$FORMAT"
+
     if [ -n "$DATE_COLUMN" ]; then
-        EXPORT_FILE="/tmp/${TABLE}_old_data_$(date +\%Y\%m\%d).csv"
-        
         if [ "$DAYS" -eq 0 ]; then
             log_message "Exporting ALL data from table $TABLE to $EXPORT_FILE."
-            PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH CSV HEADER"
+            if [ "$FORMAT" == "csv" ]; then
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH CSV HEADER"
+            elif [ "$FORMAT" == "text" ]; then
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
+            elif [ "$FORMAT" == "binary" ]; then
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
+            fi
         else
             log_message "Exporting data older than $DAYS days from table $TABLE using $DATE_COLUMN to $EXPORT_FILE."
-            PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH CSV HEADER"
+            if [ "$FORMAT" == "csv" ]; then
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH CSV HEADER"
+            elif [ "$FORMAT" == "text" ]; then
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
+            elif [ "$FORMAT" == "binary" ]; then
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
+            fi
         fi
 
         if [ $? -eq 0 ]; then
@@ -49,7 +69,7 @@ for TABLE in "${!TABLES[@]}"; do
             continue
         fi
         
-        # Upload the CSV file to S3
+        # Upload the exported file to S3
         log_message "Uploading $EXPORT_FILE to S3."
         aws s3 cp $EXPORT_FILE s3://$S3_BUCKET/ --region $REGION
         
@@ -60,28 +80,24 @@ for TABLE in "${!TABLES[@]}"; do
             continue
         fi
         
-        # Delete the CSV file after upload
-        log_message "Deleting the CSV file $EXPORT_FILE."
+        # Delete the exported file after upload
+        log_message "Deleting the exported file $EXPORT_FILE."
         rm $EXPORT_FILE
         
         if [ $? -eq 0 ]; then
-            log_message "CSV file $EXPORT_FILE deleted."
+            log_message "Exported file $EXPORT_FILE deleted."
         else
-            log_message "Failed to delete CSV file $EXPORT_FILE."
+            log_message "Failed to delete exported file $EXPORT_FILE."
         fi
         
-        # Delete old data from the table
-        if [ "$DAYS" -ne 0 ]; then
-            log_message "Deleting old data from table $TABLE."
-            PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days';"
-            
-            if [ $? -eq 0 ]; then
-                log_message "Old data deletion from table $TABLE successful."
-            else
-                log_message "Old data deletion from table $TABLE failed."
-            fi
+        # Delete all data from the table regardless of days
+        log_message "Deleting ALL data from table $TABLE."
+        PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE;"
+
+        if [ $? -eq 0 ]; then
+            log_message "All data deletion from table $TABLE successful."
         else
-            log_message "Skipping data deletion for table $TABLE because ALL data is being exported."
+            log_message "All data deletion from table $TABLE failed."
         fi
     else
         log_message "Skipping table $TABLE because it doesn't have a date column."
