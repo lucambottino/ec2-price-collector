@@ -1,7 +1,12 @@
 #!/bin/bash
 
+
 # Step 1: Delete the data folder
-# Step 1: Check if the script has the right access to the data folder
+
+echo "Setting correct permissions and ownership for the data folder..."
+chmod 755 ./data
+chown username:groupname ./data
+
 if [ -d "./data" ]; then
   if [ -w "./data" ] && [ -x "./data" ]; then
     echo "Access check passed: Deleting the data folder..."
