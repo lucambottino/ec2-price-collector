@@ -97,8 +97,6 @@ class CoinexWebSocket:
     def on_message(self, ws, message):
         parsed_msg = self.decompress_message(message)
 
-        print(f"Received message: {parsed_msg}")
-
         if "data" in parsed_msg:
             data = parsed_msg["data"]
 
