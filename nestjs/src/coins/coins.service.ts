@@ -18,15 +18,40 @@ export class CoinsService {
     return this.coinsRepository.find();
   }
 
-  // Get a coin by ID
-  findOne(id: number): Promise<Coin> {
-    return this.coinsRepository.findOne({ where: { coin_id: id } });
+  // Get all data for a specific coin by coin_name
+  async findAllByCoinName(coin_name: string): Promise<CoinData[]> {
+    const coin = await this.coinsRepository.findOne({ where: { coin_name } });
+    if (!coin) {
+      throw new Error('Coin not found');
+    }
+    return this.coinDataRepository.find({
+      where: { coin: { coin_id: coin.coin_id } },
+      relations: ['coin'], // to get coin details as well
+    });
   }
 
   // Get all coins from a specific exchange
   async findAllByExchange(exchange: 'BINANCE' | 'COINEX'): Promise<CoinData[]> {
     return this.coinDataRepository.find({
       where: { exchange: exchange as ExchangeEnum },
+      relations: ['coin'], // to get coin details as well
+    });
+  }
+
+  // Get all data for a specific coin and exchange
+  async findAllByCoinNameAndExchange(
+    coin_name: string,
+    exchange: 'BINANCE' | 'COINEX',
+  ): Promise<CoinData[]> {
+    const coin = await this.coinsRepository.findOne({ where: { coin_name } });
+    if (!coin) {
+      throw new Error('Coin not found');
+    }
+    return this.coinDataRepository.find({
+      where: {
+        coin: { coin_id: coin.coin_id },
+        exchange: exchange as ExchangeEnum,
+      },
       relations: ['coin'], // to get coin details as well
     });
   }
@@ -40,14 +65,6 @@ export class CoinsService {
   create(coin_name: string): Promise<Coin> {
     const coin = this.coinsRepository.create({ coin_name });
     return this.coinsRepository.save(coin);
-  }
-
-  // Create new coin data
-  async createCoinData(coinData: Partial<CoinData>): Promise<CoinData> {
-    const coin = await this.findOne(coinData.coin.coin_id);
-    if (!coin) throw new Error('Coin not found');
-    const newCoinData = this.coinDataRepository.create({ ...coinData, coin });
-    return this.coinDataRepository.save(newCoinData);
   }
 
   // Update a coin's data
