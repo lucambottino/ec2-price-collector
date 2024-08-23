@@ -27,7 +27,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy environment variables
-COPY .env ./
+# COPY .env ./
 
 # Expose the application port
 EXPOSE 3000
