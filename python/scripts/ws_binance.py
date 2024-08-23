@@ -1,12 +1,12 @@
 import json
 import time
 import logging
-import psycopg2
-import os
 from threading import Lock
+from datetime import datetime  # Import datetime module
 from dotenv import load_dotenv
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
 from coin_list import COIN_LIST
+from db_manager import DBManager
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -19,73 +19,60 @@ class WSCryptoPriceTracker:
     def __init__(self):
         self.lock = Lock()
         self.client = UMFuturesWebsocketClient(on_message=self.message_handler)
-        self.conn = None
-        self.cursor = None
-        self.setup_db_connection()
-
-    def setup_db_connection(self):
-        try:
-            self.conn = psycopg2.connect(
-                dbname=os.getenv("POSTGRES_DB"),
-                user=os.getenv("POSTGRES_USER"),
-                password=os.getenv("POSTGRES_PASSWORD"),
-                host=os.getenv("POSTGRES_HOST"),
-            )
-            self.cursor = self.conn.cursor()
-        except Exception as e:
-            logging.error(f"Error connecting to DB: {e}")
-
-    def close_db_connection(self):
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.close()
+        self.db_manager = DBManager()  # Use DBManager for database operations
 
     def insert_data_into_db(self, new_data):
         try:
+            # Define the exchange name
+            exchange_name = (
+                "BINANCE"  # Replace with the actual exchange name you're working with
+            )
 
-            self.cursor.execute(
+            # Fetch coin_id from the database
+            coin_id = self.db_manager.execute_query(
                 "SELECT coin_id FROM coins_table WHERE coin_name = %s",
                 (new_data["symbol"],),
             )
-            coin_id = self.cursor.fetchone()
 
-            if coin_id is None:
-                self.cursor.execute(
+            if not coin_id:
+                # Insert the coin if it doesn't exist
+                coin_id = self.db_manager.execute_query(
                     "INSERT INTO coins_table (coin_name) VALUES (%s) RETURNING coin_id",
                     (new_data["symbol"],),
                 )
-                coin_id = self.cursor.fetchone()[0]
+                coin_id = coin_id[0][0] if coin_id else None
             else:
-                coin_id = coin_id[0]
+                coin_id = coin_id[0][0]
 
-            insert_query = """
-            INSERT INTO coin_data_table (
-                coin_id, timestamp, best_bid, best_ask, best_bid_qty, best_ask_qty, mark_price, last_price, updated_at
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s
-            );
-            """
-
-            self.cursor.execute(
-                insert_query,
-                (
-                    coin_id,
-                    new_data["timestamp"],
-                    new_data["best_bid"],
-                    new_data["best_ask"],
-                    new_data["best_bid_qty"],
-                    new_data["best_ask_qty"],
-                    new_data["mark_price"],
-                    new_data["last_price"],
-                    new_data["timestamp"],
-                ),
-            )
-
-            self.conn.commit()
+            if coin_id:
+                # Insert the new data, including the exchange name
+                insert_query = """
+                INSERT INTO coin_data_table (
+                    coin_id, timestamp, best_bid, best_ask, best_bid_qty, best_ask_qty, mark_price, last_price, updated_at, exchange
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                );
+                """
+                self.db_manager.cursor.execute(
+                    insert_query,
+                    (
+                        coin_id,
+                        datetime.fromtimestamp(new_data["timestamp"] / 1000.0),
+                        new_data["best_bid"],
+                        new_data["best_ask"],
+                        new_data["best_bid_qty"],
+                        new_data["best_ask_qty"],
+                        new_data["mark_price"],
+                        new_data["last_price"],
+                        datetime.fromtimestamp(new_data["timestamp"] / 1000.0),
+                        exchange_name,  # Add the exchange name here
+                    ),
+                )
+                self.db_manager.commit()
 
         except Exception as e:
             logging.error(f"Error inserting data into DB: {e}")
+            self.db_manager.conn.rollback()  # Rollback the transaction on error
 
     def message_handler(self, _, message):
         try:
@@ -116,8 +103,11 @@ class WSCryptoPriceTracker:
                     "timestamp": message["E"],
                 }
 
-            # self.insert_data_into_db(parsed_data)
-            print(parsed_data)
+            try:
+                self.insert_data_into_db(parsed_data)
+                print(f"Data inserted: {parsed_data}")
+            except Exception as e:
+                logging.error(f"Error inserting data into DB: {e}")
 
         except Exception as e:
             logging.error(f"Error in message_handler: {e}")
@@ -149,7 +139,7 @@ class WSCryptoPriceTracker:
             logging.info("Script interrupted by user.")
         finally:
             self.stop()
-            self.close_db_connection()
+            self.db_manager.close()
 
 
 if __name__ == "__main__":

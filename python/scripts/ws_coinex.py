@@ -1,59 +1,21 @@
 import json
 import time
 import websocket
-import os
-from dotenv import load_dotenv
 import gzip
 import requests
-import psycopg2
+from dotenv import load_dotenv
 from datetime import datetime
-
+from db_manager import DBManager
 from coin_list import COIN_LIST
+import os
 
 
 class CoinexWebSocket:
-    def __init__(self, access_id, signed_str, coins):
+    def __init__(self, access_id, signed_str, coins, db_manager):
         self.access_id = access_id
         self.signed_str = signed_str
         self.coins = coins
-        self.conn = None
-        self.cursor = None
-        self.setup_db_connection()
-
-    def setup_db_connection(self):
-        try:
-            self.conn = psycopg2.connect(
-                dbname=os.getenv("DB_NAME"),
-                user=os.getenv("DB_USER"),
-                password=os.getenv("DB_PASSWORD"),
-                host=os.getenv("DB_HOST"),
-                port=os.getenv("DB_PORT"),
-            )
-            self.cursor = self.conn.cursor()
-            print("Connected to DB")
-
-            # Query to get all table names
-            self.cursor.execute(
-                """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public';
-            """
-            )
-            tables = self.cursor.fetchall()
-            if tables:
-                print(f"Tables in the database: {tables}")
-            else:
-                print("No tables found in the database.")
-
-        except Exception as e:
-            print(f"Error connecting to DB: {e}")
-
-    def close_db_connection(self):
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.close()
+        self.db_manager = db_manager
 
     def authenticate_request(self, timestamp=None):
         if timestamp is None:
@@ -93,49 +55,48 @@ class CoinexWebSocket:
 
     def insert_data_into_db(self, parsed_data):
         try:
-            # Convert Unix timestamp in milliseconds to timestamp
             timestamp = datetime.fromtimestamp(parsed_data["timestamp"] / 1000.0)
 
-            self.cursor.execute(
-                "SELECT coin_id FROM coins_table WHERE coin_name = %s",
-                (parsed_data["symbol"],),
-            )
-            coin_id = self.cursor.fetchone()
+            query = "SELECT coin_id FROM coins_table WHERE coin_name = %s"
+            coin_id = self.db_manager.execute_query(query, (parsed_data["symbol"],))
 
-            if coin_id is None:
-                self.cursor.execute(
-                    "INSERT INTO coins_table (coin_name) VALUES (%s) RETURNING coin_id",
-                    (parsed_data["symbol"],),
+            if not coin_id:
+                insert_coin_query = (
+                    "INSERT INTO coins_table (coin_name) VALUES (%s) RETURNING coin_id"
                 )
-                coin_id = self.cursor.fetchone()[0]
+                coin_id = self.db_manager.execute_query(
+                    insert_coin_query, (parsed_data["symbol"],)
+                )
+                coin_id = coin_id[0][0] if coin_id else None
             else:
-                coin_id = coin_id[0]
+                coin_id = coin_id[0][0]
 
-            insert_query = """
-            INSERT INTO coin_data_table (
-                coin_id, timestamp, best_bid, best_ask, best_bid_qty, best_ask_qty, mark_price, last_price, updated_at, exchange
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-            );
-            """
-
-            self.cursor.execute(
-                insert_query,
-                (
-                    coin_id,
-                    timestamp,  # Use the converted timestamp here
-                    parsed_data["best_bid"],
-                    parsed_data["best_ask"],
-                    parsed_data["best_bid_qty"],
-                    parsed_data["best_ask_qty"],
-                    parsed_data["mark_price"],
-                    parsed_data["last_price"],
-                    timestamp,  # Use the converted timestamp for updated_at as well
-                    "COINEX",
-                ),
-            )
-
-            self.conn.commit()
+            if coin_id:
+                insert_data_query = """
+                INSERT INTO coin_data_table (
+                    coin_id, timestamp, best_bid, best_ask, best_bid_qty, best_ask_qty, mark_price, last_price, updated_at, exchange
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                );
+                """
+                self.db_manager.cursor.execute(
+                    insert_data_query,
+                    (
+                        coin_id,
+                        timestamp,
+                        parsed_data["best_bid"],
+                        parsed_data["best_ask"],
+                        parsed_data["best_bid_qty"],
+                        parsed_data["best_ask_qty"],
+                        parsed_data["mark_price"],
+                        parsed_data["last_price"],
+                        timestamp,
+                        "COINEX",
+                    ),
+                )
+                self.db_manager.commit()
+            else:
+                print("Error: Could not find or insert coin_id")
 
         except Exception as e:
             print(f"Error inserting data into DB: {e}")
@@ -197,11 +158,13 @@ class CoinexWebSocket:
 if __name__ == "__main__":
     load_dotenv()
 
+    db_manager = DBManager()
+
     access_id = os.getenv("APIKEYCOINEX")
     signed_str = os.getenv("APISECRETKEYCOINEX")
 
-    coinex_ws = CoinexWebSocket(access_id, signed_str, COIN_LIST)
+    coinex_ws = CoinexWebSocket(access_id, signed_str, COIN_LIST, db_manager)
     try:
         coinex_ws.run()
     finally:
-        coinex_ws.close_db_connection()
+        db_manager.close()
