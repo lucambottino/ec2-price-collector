@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   postgres:
-    image: postgres:13.4  # Pin to a specific version for stability
+    image: postgres:13.4  
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -40,29 +40,29 @@ services:
       postgres:
         condition: service_healthy
 
-  # ws_binance:
-  #   build: ./python
-  #   restart: always
-  #   environment:
-  #     DB_NAME: ${POSTGRES_DB}
-  #     DB_USER: ${POSTGRES_USER}
-  #     DB_PASSWORD: ${POSTGRES_PASSWORD}
-  #     DB_HOST: ${POSTGRES_HOST}
-  #     DB_PORT: ${POSTGRES_PORT}
-  #   command: ["python", "/app/scripts/ws_binance.py"]
-  #   volumes:
-  #     - ./python:/app
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  # adminer:
-  #   image: adminer
-  #   restart: always
-  #   ports:
-  #     - 8080:8080
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+  ws_binance:
+    build: ./python
+    restart: always
+    environment:
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT}
+    command: ["python", "/app/scripts/ws_binance.py"]
+    volumes:
+      - ./python:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   nestjs:
     build: ./nestjs
