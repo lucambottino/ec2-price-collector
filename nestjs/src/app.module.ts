@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-
+import { Coin } from './coins/coins.entity';
+import { CoinData } from './coins/coin-data.entity';
+import { CoinsModule } from './coins/coins.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -14,13 +14,14 @@ import { ConfigModule } from '@nestjs/config';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
-      synchronize: true,
+      synchronize: false, // Set to false if you want to manage your schema manually
       logging: false,
-      // migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      entities: [Coin, CoinData],
     }),
+    TypeOrmModule.forFeature([Coin, CoinData]),
+    CoinsModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
