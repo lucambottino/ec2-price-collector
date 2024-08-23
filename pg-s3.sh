@@ -20,7 +20,7 @@ fi
 # Check if an argument is provided for the format
 if [ -z "$2" ]; then
     log_message "No format argument provided. Defaulting to CSV."
-    FORMAT="csv"
+    FORMAT="binary"
 else
     FORMAT=$2
     log_message "Exporting data in $FORMAT format."
