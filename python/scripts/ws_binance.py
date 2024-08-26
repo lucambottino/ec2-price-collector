@@ -100,7 +100,7 @@ class WSCryptoPriceTracker:
 
             try:
                 self.insert_data_into_db(parsed_data)
-                # print(f"Data inserted: {parsed_data}")
+                print(f"Data inserted: {parsed_data}")
             except Exception as e:
                 print(f"Error inserting data into DB: {e, parsed_data}")
 
