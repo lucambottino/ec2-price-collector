@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Coin } from './coins.entity';
 import { CoinData, ExchangeEnum } from './coin-data.entity';
+import { LatestCoinData } from './latest-coins.entity';
 
 @Injectable()
 export class CoinsService {
@@ -16,6 +17,11 @@ export class CoinsService {
   // Get all coins
   findAll(): Promise<Coin[]> {
     return this.coinsRepository.find();
+  }
+
+  async findCoinIdByName(coin_name: string): Promise<number | null> {
+    const coin = await this.coinsRepository.findOne({ where: { coin_name } });
+    return coin ? coin.coin_id : null;
   }
 
   // Get all data for a specific coin by coin_name with pagination
@@ -98,11 +104,6 @@ export class CoinsService {
       .where('coin_data.coin_id = :coin_id', { coin_id: coin.coin_id })
       .orderBy('coin_data.timestamp', 'DESC')
       .getMany();
-  }
-
-  // Get coin data by coin ID
-  async findCoinData(coin_id: number): Promise<CoinData[]> {
-    return this.coinDataRepository.find({ where: { coin: { coin_id } } });
   }
 
   // Create a new coin

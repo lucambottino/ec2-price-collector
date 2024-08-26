@@ -4,6 +4,8 @@ import { ConfigModule } from '@nestjs/config';
 import { Coin } from './coins/coins.entity';
 import { CoinData } from './coins/coin-data.entity';
 import { CoinsModule } from './coins/coins.module';
+import { LatestCoinDataModule } from './coins/latest-coins.module';
+import { LatestCoinData } from './coins/latest-coins.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -16,10 +18,11 @@ import { CoinsModule } from './coins/coins.module';
       database: process.env.DB_DATABASE,
       synchronize: false, // Set to false if you want to manage your schema manually
       logging: false,
-      entities: [Coin, CoinData],
+      entities: [Coin, CoinData, LatestCoinData],
     }),
-    TypeOrmModule.forFeature([Coin, CoinData]),
+    TypeOrmModule.forFeature([Coin, CoinData, LatestCoinData]),
     CoinsModule,
+    LatestCoinDataModule,
   ],
   controllers: [],
   providers: [],
