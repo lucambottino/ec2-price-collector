@@ -21,9 +21,6 @@ import {
     @PrimaryColumn({ type: 'enum', enum: ExchangeEnum })
     exchange: ExchangeEnum;
   
-    @PrimaryColumn()
-    id: number;
-  
     @Column({ type: 'varchar', length: 10 })
     symbol: string;
   
