@@ -18,30 +18,46 @@ export class CoinsService {
     return this.coinsRepository.find();
   }
 
-  // Get all data for a specific coin by coin_name
-  async findAllByCoinName(coin_name: string): Promise<CoinData[]> {
+  // Get all data for a specific coin by coin_name with pagination
+  async findAllByCoinName(
+    coin_name: string,
+    limit: number,
+    offset: number,
+  ): Promise<CoinData[]> {
     const coin = await this.coinsRepository.findOne({ where: { coin_name } });
     if (!coin) {
       throw new Error('Coin not found');
     }
     return this.coinDataRepository.find({
       where: { coin: { coin_id: coin.coin_id } },
-      relations: ['coin'], // to get coin details as well
+      relations: ['coin'],
+      order: { timestamp: 'DESC' }, // Order by timestamp descending
+      take: limit,
+      skip: offset,
     });
   }
 
-  // Get all coins from a specific exchange
-  async findAllByExchange(exchange: 'BINANCE' | 'COINEX'): Promise<CoinData[]> {
+  // Get all coins from a specific exchange with pagination
+  async findAllByExchange(
+    exchange: 'BINANCE' | 'COINEX',
+    limit: number,
+    offset: number,
+  ): Promise<CoinData[]> {
     return this.coinDataRepository.find({
       where: { exchange: exchange as ExchangeEnum },
-      relations: ['coin'], // to get coin details as well
+      relations: ['coin'],
+      order: { timestamp: 'DESC' }, // Order by timestamp descending
+      take: limit,
+      skip: offset,
     });
   }
 
-  // Get all data for a specific coin and exchange
+  // Get all data for a specific coin and exchange with pagination
   async findAllByCoinNameAndExchange(
     coin_name: string,
     exchange: 'BINANCE' | 'COINEX',
+    limit: number,
+    offset: number,
   ): Promise<CoinData[]> {
     const coin = await this.coinsRepository.findOne({ where: { coin_name } });
     if (!coin) {
@@ -52,7 +68,10 @@ export class CoinsService {
         coin: { coin_id: coin.coin_id },
         exchange: exchange as ExchangeEnum,
       },
-      relations: ['coin'], // to get coin details as well
+      relations: ['coin'],
+      order: { timestamp: 'DESC' }, // Order by timestamp descending
+      take: limit,
+      skip: offset,
     });
   }
 
