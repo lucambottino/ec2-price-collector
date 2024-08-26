@@ -23,11 +23,6 @@ class WSCryptoPriceTracker:
 
     def insert_data_into_db(self, new_data):
         try:
-            # Define the exchange name
-            exchange_name = (
-                "BINANCE"  # Replace with the actual exchange name you're working with
-            )
-
             # Fetch coin_id from the database
             coin_id = self.db_manager.execute_query(
                 "SELECT coin_id FROM coins_table WHERE coin_name = %s",
@@ -65,7 +60,7 @@ class WSCryptoPriceTracker:
                         new_data["mark_price"],
                         new_data["last_price"],
                         datetime.fromtimestamp(new_data["timestamp"] / 1000.0),
-                        exchange_name,  # Add the exchange name here
+                        "BINANCE",
                     ),
                 )
                 self.db_manager.commit()
