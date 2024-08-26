@@ -6,7 +6,7 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=coinex-prices
 POSTGRES_PORT=5432
-CONTAINER_NAME="coinex-price-collector-postgres-1"
+CONTAINER_NAME="ec2-price-collector-postgres-1"
 
 # Start Docker containers
 echo "Starting Docker containers..."
