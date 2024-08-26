@@ -1,0 +1,104 @@
+{
+    "orders": [
+        {
+            "symbol": "INJUSDT",
+            "side": "SHORT",
+            "mean": 0.0,
+            "entry": 0.8,
+            "exit": -0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+        {
+            "symbol": "INJUSDT",
+            "side": "LONG",
+            "mean": 0.0,
+            "entry": -0.8,
+            "exit": 0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+        {
+            "symbol": "AXSUSDT",
+            "side": "SHORT",
+            "mean": 0.0,
+            "entry": 0.8,
+            "exit": -0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+        {
+            "symbol": "AXSUSDT",
+            "side": "LONG",
+            "mean": 0.0,
+            "entry": -0.8,
+            "exit": 0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+            {
+            "symbol": "DYDXUSDT",
+            "side": "SHORT",
+            "mean": 0.0,
+            "entry": 0.8,
+            "exit": -0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+        {
+            "symbol": "DYDXUSDT",
+            "side": "LONG",
+            "mean": 0.0,
+            "entry": -0.8,
+            "exit": 0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+        {
+            "symbol": "CRVUSDT",
+            "side": "SHORT",
+            "mean": 0.0,
+            "entry": 0.8,
+            "exit": -0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+        {
+            "symbol": "CRVUSDT",
+            "side": "LONG",
+            "mean": 0.0,
+            "entry": -0.8,
+            "exit": 0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+        {
+            "symbol": "LTCUSDT",
+            "side": "SHORT",
+            "mean": 0.0,
+            "entry": 0.8,
+            "exit": -0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        },
+        {
+            "symbol": "LTCUSDT",
+            "side": "LONG",
+            "mean": 0.0,
+            "entry": -0.8,
+            "exit": 0.1,
+            "quantity": 0.5,
+            "executed_quantity_entry": 0.0,
+            "executed_quantity_exit": 0.0
+        }
+    ]
+}

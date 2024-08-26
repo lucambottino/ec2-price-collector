@@ -43,6 +43,22 @@ CREATE TABLE IF NOT EXISTS latest_coin_data_table (
     PRIMARY KEY (coin_id, exchange)  -- Enforce one record per coin-exchange pair
 );
 
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL,                                 -- Unique identifier for each order
+    coin_id INT REFERENCES coins_table(coin_id), -- Foreign key referencing the coins_table
+    symbol VARCHAR(10) NOT NULL,               -- Cryptocurrency symbol (e.g., INJUSDT, AXSUSDT)
+    side VARCHAR(5) CHECK (side IN ('LONG', 'SHORT')) NOT NULL,  -- Side of the order (LONG or SHORT)
+    mean_premium DECIMAL(10, 4) DEFAULT 0.0,           -- Mean price, with a default value of 0.0
+    entry_premium DECIMAL(10, 4) NOT NULL,             -- Entry price for the order
+    exit_premium DECIMAL(10, 4) NOT NULL,              -- Exit price for the order
+    quantity DECIMAL(10, 4) NOT NULL,          -- Quantity of the asset for the order
+    executed_quantity_entry DECIMAL(10, 4) DEFAULT 0.0,  -- Executed quantity at the entry point, default is 0.0
+    executed_quantity_exit DECIMAL(10, 4) DEFAULT 0.0,   -- Executed quantity at the exit point, default is 0.0
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp for when the order was created
+    PRIMARY KEY (coin_id, id)  -- Composite primary key
+);
+
+
 -- Create or replace function to update latest_coin_data_table
 CREATE OR REPLACE FUNCTION update_latest_coin_data()
 RETURNS TRIGGER AS $$
