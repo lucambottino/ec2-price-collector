@@ -17,7 +17,6 @@ load_dotenv()
 
 class WSCryptoPriceTracker:
     def __init__(self):
-        self.lock = asyncio.Lock()
         self.client = UMFuturesWebsocketClient(on_message=self.on_message)
         self.db_manager = DBManager()
         self.data_batch = []  # To hold batched data
@@ -26,6 +25,7 @@ class WSCryptoPriceTracker:
 
         # Create and start an event loop in a new thread
         self.loop = asyncio.new_event_loop()
+        self.lock = asyncio.Lock()  # Removed loop=self.loop since it's no longer needed
         threading.Thread(target=self.start_loop, daemon=True).start()
 
     def start_loop(self):
@@ -66,6 +66,7 @@ class WSCryptoPriceTracker:
                 if values:
                     self.db_manager.cursor.executemany(insert_query, values)
                     self.db_manager.commit()
+                    print("batch post successful")
 
                 self.data_batch = []  # Clear the batch after insertion
 
@@ -115,10 +116,13 @@ class WSCryptoPriceTracker:
                     "last_price": float(message["p"]),
                     "timestamp": message["E"],
                 }
+            else:
+                parsed_data = None  # Ensure parsed_data is defined even if the conditions don't match
 
-            # Add to batch
-            async with self.lock:
-                self.data_batch.append(parsed_data)
+            if parsed_data:
+                # Add to batch
+                async with self.lock:
+                    self.data_batch.append(parsed_data)
 
         except Exception as e:
             logging.error(f"Error in message_handler: {e}")
