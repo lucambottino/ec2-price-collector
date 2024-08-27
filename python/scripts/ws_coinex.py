@@ -113,7 +113,7 @@ class CoinexWebSocket:
 
             try:
                 self.insert_data_into_db(parsed_data)
-                print(f"Data inserted coin into DB: {parsed_data}")
+                # print(f"Data inserted coin into DB: {parsed_data}")
             except Exception as e:
                 print(f"Error inserting data into DB: {e, parsed_data}")
 
