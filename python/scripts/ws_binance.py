@@ -1,12 +1,12 @@
 import json
 import time
 import logging
+from threading import Lock
 from datetime import datetime
 from dotenv import load_dotenv
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
 from coin_list import COIN_LIST
 from db_manager import DBManager
-from threading import Lock, Thread
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -18,16 +18,12 @@ load_dotenv()
 class WSCryptoPriceTracker:
     def __init__(self):
         self.lock = Lock()
-        self.client = UMFuturesWebsocketClient(on_message=self.on_message)
+        self.client = UMFuturesWebsocketClient(on_message=self.message_handler)
         self.db_manager = DBManager()
-        self.data_batch = []  # To hold batched data
-        self.batch_size = 100  # Batch size for database insertion
-        self.batch_interval = 0.2  # Interval in seconds for batch insertion
+        self.data_batch = []  # To accumulate data for batch insertion
+        self.batch_size = 100  # Maximum size of the batch
 
-        # Start the batch processing in a separate thread
-        Thread(target=self.run_batch_process, daemon=True).start()
-
-    def insert_batch_data_into_db(self):
+    def insert_batch_into_db(self):
         with self.lock:
             if not self.data_batch:
                 return
@@ -65,7 +61,7 @@ class WSCryptoPriceTracker:
                 self.data_batch = []  # Clear the batch after insertion
 
             except Exception as e:
-                logging.error(f"Error in batch insertion: {e}")
+                logging.error(f"Error inserting batch into DB: {e}")
                 self.db_manager.conn.rollback()
 
     def get_or_create_coin_id(self, symbol):
@@ -109,18 +105,12 @@ class WSCryptoPriceTracker:
                     "last_price": float(message["p"]),
                     "timestamp": message["E"],
                 }
-            else:
-                parsed_data = None
 
-            if parsed_data:
-                with self.lock:
-                    self.data_batch.append(parsed_data)
+            with self.lock:
+                self.data_batch.append(parsed_data)
 
         except Exception as e:
             logging.error(f"Error in message_handler: {e}")
-
-    def on_message(self, _, message):
-        self.message_handler(_, message)
 
     def start(self, coins):
         try:
@@ -139,15 +129,20 @@ class WSCryptoPriceTracker:
         except Exception as e:
             logging.error(f"Error stopping WebSocket client: {e}")
 
-    def run_batch_process(self):
-        while True:
-            time.sleep(self.batch_interval)
-            self.insert_batch_data_into_db()
+    def run(self, coins):
+        coins = [coin.lower() for coin in coins]
+        try:
+            self.start(coins)
+            while True:
+                time.sleep(1)  # Sleep for 1 second
+                self.insert_batch_into_db()  # Insert batch into DB every second
+        except KeyboardInterrupt:
+            logging.info("Script interrupted by user.")
+        finally:
+            self.stop()
+            self.db_manager.close()
 
 
 if __name__ == "__main__":
     ws_manager = WSCryptoPriceTracker()
-    try:
-        ws_manager.start(COIN_LIST)
-    except KeyboardInterrupt:
-        ws_manager.stop()
+    ws_manager.run(COIN_LIST)
