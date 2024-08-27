@@ -103,7 +103,7 @@ class CoinexWebSocket:
             parsed_data = {
                 "symbol": data["market"],
                 "best_bid": data["best_bid_price"],
-                "best_ask": data["best_ask_size"],
+                "best_ask": data["best_ask_price"],
                 "best_bid_qty": data["best_bid_size"],
                 "best_ask_qty": data["best_ask_size"],
                 "mark_price": None,
