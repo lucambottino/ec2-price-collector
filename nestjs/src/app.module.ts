@@ -6,6 +6,7 @@ import { CoinData } from './coins/coin-data.entity';
 import { CoinsModule } from './coins/coins.module';
 import { LatestCoinDataModule } from './coins/latest-coins.module';
 import { LatestCoinData } from './coins/latest-coins.entity';
+import { OrdersModule } from './orders/orders.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -23,6 +24,7 @@ import { LatestCoinData } from './coins/latest-coins.entity';
     TypeOrmModule.forFeature([Coin, CoinData, LatestCoinData]),
     CoinsModule,
     LatestCoinDataModule,
+    OrdersModule,
   ],
   controllers: [],
   providers: [],

@@ -2,3 +2,4 @@
 .env
 data/*
 reset_docker.sh
+coinex_instance_keys.pem
