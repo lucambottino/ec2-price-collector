@@ -1,6 +1,6 @@
 import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
 import { LatestCoinDataService } from './latest-coins.service';
-import { LatestCoinData } from './latest-coins.entity';
+import { LatestCoinData } from './entities/latest-coins.entity';
 import { CoinsService } from './coins.service';
 
 @Controller('latest-coin-data')

@@ -10,8 +10,7 @@ import {
 } from '@nestjs/common';
 import { CoinsService } from './coins.service';
 import { Coin } from './coins.entity';
-import { CoinData } from './coin-data.entity';
-import { LatestCoinData } from './latest-coins.entity';
+import { CoinData } from './entities/coin-data.entity';
 
 @Controller('coins')
 export class CoinsController {

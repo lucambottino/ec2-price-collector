@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Coin } from './coins.entity';
+import { Coin } from '../coins.entity';
 
 export enum ExchangeEnum {
   BINANCE = 'BINANCE',

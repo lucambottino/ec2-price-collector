@@ -27,6 +27,23 @@ CREATE TABLE IF NOT EXISTS coin_data_table (
     exchange exchange_enum NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL,                                 -- Unique identifier for each order
+    coin_id INT REFERENCES coins_table(coin_id), -- Foreign key referencing the coins_table
+    symbol VARCHAR(10) NOT NULL,               -- Cryptocurrency symbol (e.g., INJUSDT, AXSUSDT)
+    side VARCHAR(5) CHECK (side IN ('LONG', 'SHORT')) NOT NULL,  -- Side of the order (LONG or SHORT)
+    mean_premium DECIMAL(10, 4) DEFAULT 0.0,           -- Mean price, with a default value of 0.0
+    entry_premium DECIMAL(10, 4) NOT NULL,             -- Entry price for the order
+    exit_premium DECIMAL(10, 4) NOT NULL,              -- Exit price for the order
+    quantity DECIMAL(10, 4) NOT NULL,          -- Quantity of the asset for the order
+    executed_quantity_entry DECIMAL(10, 4) DEFAULT 0.0,  -- Executed quantity at the entry point, default is 0.0
+    executed_quantity_exit DECIMAL(10, 4) DEFAULT 0.0,   -- Executed quantity at the exit point, default is 0.0
+    exchange exchange_enum NOT NULL,           -- Exchange column with ENUM type
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,  -- Timestamp for when the order was created
+    PRIMARY KEY (coin_id, id)  -- Composite primary key
+);
+
+
 -- Create latest_coin_data_table to store the most recent value of the coin data
 CREATE TABLE IF NOT EXISTS latest_coin_data_table (
     coin_id INT REFERENCES coins_table(coin_id),

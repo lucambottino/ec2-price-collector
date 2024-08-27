@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Coin } from './coins.entity';
-import { CoinData, ExchangeEnum } from './coin-data.entity';
-import { LatestCoinData } from './latest-coins.entity';
+import { CoinData, ExchangeEnum } from './entities/coin-data.entity';
 
 @Injectable()
 export class CoinsService {
