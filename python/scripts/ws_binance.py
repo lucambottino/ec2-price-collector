@@ -22,7 +22,7 @@ class WSCryptoPriceTracker:
         self.db_manager = DBManager()
         self.data_batch = []  # To hold batched data
         self.batch_size = 100  # Batch size for database insertion
-        self.batch_interval = 0.2  # Interval in seconds for batch insertion
+        self.batch_interval = 1  # Interval in seconds for batch insertion
 
         # Create and start an event loop in a new thread
         self.loop = asyncio.new_event_loop()
