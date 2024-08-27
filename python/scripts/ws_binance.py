@@ -1,12 +1,12 @@
 import json
-import asyncio
+import time
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
 from coin_list import COIN_LIST
 from db_manager import DBManager
-import threading
+from threading import Lock, Thread
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -17,23 +17,18 @@ load_dotenv()
 
 class WSCryptoPriceTracker:
     def __init__(self):
+        self.lock = Lock()
         self.client = UMFuturesWebsocketClient(on_message=self.on_message)
         self.db_manager = DBManager()
         self.data_batch = []  # To hold batched data
         self.batch_size = 100  # Batch size for database insertion
-        self.batch_interval = 1  # Interval in seconds for batch insertion
+        self.batch_interval = 0.2  # Interval in seconds for batch insertion
 
-        # Create and start an event loop in a new thread
-        self.loop = asyncio.new_event_loop()
-        self.lock = asyncio.Lock()  # Removed loop=self.loop since it's no longer needed
-        threading.Thread(target=self.start_loop, daemon=True).start()
+        # Start the batch processing in a separate thread
+        Thread(target=self.run_batch_process, daemon=True).start()
 
-    def start_loop(self):
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_forever()
-
-    async def insert_batch_data_into_db(self):
-        async with self.lock:
+    def insert_batch_data_into_db(self):
+        with self.lock:
             if not self.data_batch:
                 return
             try:
@@ -46,7 +41,7 @@ class WSCryptoPriceTracker:
                 """
                 values = []
                 for new_data in self.data_batch:
-                    coin_id = await self.get_or_create_coin_id(new_data["symbol"])
+                    coin_id = self.get_or_create_coin_id(new_data["symbol"])
                     if coin_id:
                         values.append(
                             (
@@ -66,16 +61,14 @@ class WSCryptoPriceTracker:
                 if values:
                     self.db_manager.cursor.executemany(insert_query, values)
                     self.db_manager.commit()
-                    print("batch post successful")
 
                 self.data_batch = []  # Clear the batch after insertion
 
             except Exception as e:
                 logging.error(f"Error in batch insertion: {e}")
-                print(f"Error in batch insertion: {e}")
-                await self.db_manager.conn.rollback()
+                self.db_manager.conn.rollback()
 
-    async def get_or_create_coin_id(self, symbol):
+    def get_or_create_coin_id(self, symbol):
         coin_id = self.db_manager.execute_query(
             "SELECT coin_id FROM coins_table WHERE coin_name = %s",
             (symbol,),
@@ -90,7 +83,7 @@ class WSCryptoPriceTracker:
             coin_id = coin_id[0][0]
         return coin_id
 
-    async def message_handler(self, _, message):
+    def message_handler(self, _, message):
         try:
             message = json.loads(message)
 
@@ -117,23 +110,19 @@ class WSCryptoPriceTracker:
                     "timestamp": message["E"],
                 }
             else:
-                parsed_data = None  # Ensure parsed_data is defined even if the conditions don't match
+                parsed_data = None
 
             if parsed_data:
-                # Add to batch
-                async with self.lock:
+                with self.lock:
                     self.data_batch.append(parsed_data)
 
         except Exception as e:
             logging.error(f"Error in message_handler: {e}")
 
     def on_message(self, _, message):
-        # Schedule the coroutine in the event loop running in the thread
-        self.loop.call_soon_threadsafe(
-            asyncio.create_task, self.message_handler(_, message)
-        )
+        self.message_handler(_, message)
 
-    async def start(self, coins):
+    def start(self, coins):
         try:
             for coin in coins:
                 self.client.book_ticker(symbol=coin)
@@ -143,27 +132,22 @@ class WSCryptoPriceTracker:
             logging.error(f"Error starting WebSocket client: {e}")
             self.client.stop()
 
-    async def stop(self):
+    def stop(self):
         try:
             self.client.stop()
             logging.info("WebSocket client stopped.")
         except Exception as e:
             logging.error(f"Error stopping WebSocket client: {e}")
 
-    async def run(self, coins):
-        coins = [coin.lower() for coin in coins]
-        await self.start(coins)
-        try:
-            while True:
-                await asyncio.sleep(self.batch_interval)
-                await self.insert_batch_data_into_db()
-        except KeyboardInterrupt:
-            logging.info("Script interrupted by user.")
-        finally:
-            await self.stop()
-            self.db_manager.close()
+    def run_batch_process(self):
+        while True:
+            time.sleep(self.batch_interval)
+            self.insert_batch_data_into_db()
 
 
 if __name__ == "__main__":
     ws_manager = WSCryptoPriceTracker()
-    asyncio.run(ws_manager.run(COIN_LIST))
+    try:
+        ws_manager.start(COIN_LIST)
+    except KeyboardInterrupt:
+        ws_manager.stop()
