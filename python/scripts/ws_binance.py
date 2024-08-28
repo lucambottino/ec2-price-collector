@@ -2,7 +2,7 @@ import json
 import time
 import logging
 from threading import Lock
-from datetime import datetime  # Import datetime module
+from datetime import datetime
 from dotenv import load_dotenv
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
 from coin_list import COIN_LIST
@@ -19,28 +19,15 @@ class WSCryptoPriceTracker:
     def __init__(self):
         self.lock = Lock()
         self.client = UMFuturesWebsocketClient(on_message=self.message_handler)
-        self.db_manager = DBManager()  # Use DBManager for database operations
+        self.db_manager = DBManager()
+        self.data_batch = []  # To accumulate data for batch insertion
+        self.batch_size = 100  # Maximum size of the batch
 
-    def insert_data_into_db(self, new_data):
-        try:
-            # Fetch coin_id from the database
-            coin_id = self.db_manager.execute_query(
-                "SELECT coin_id FROM coins_table WHERE coin_name = %s",
-                (new_data["symbol"],),
-            )
-
-            if not coin_id:
-                # Insert the coin if it doesn't exist
-                coin_id = self.db_manager.execute_query(
-                    "INSERT INTO coins_table (coin_name) VALUES (%s) RETURNING coin_id",
-                    (new_data["symbol"],),
-                )
-                coin_id = coin_id[0][0] if coin_id else None
-            else:
-                coin_id = coin_id[0][0]
-
-            if coin_id:
-                # Insert the new data, including the exchange name
+    def insert_batch_into_db(self):
+        with self.lock:
+            if not self.data_batch:
+                return
+            try:
                 insert_query = """
                 INSERT INTO coin_data_table (
                     coin_id, timestamp, best_bid, best_ask, best_bid_qty, best_ask_qty, mark_price, last_price, updated_at, exchange
@@ -48,26 +35,49 @@ class WSCryptoPriceTracker:
                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 );
                 """
-                self.db_manager.cursor.execute(
-                    insert_query,
-                    (
-                        coin_id,
-                        datetime.fromtimestamp(new_data["timestamp"] / 1000.0),
-                        new_data["best_bid"],
-                        new_data["best_ask"],
-                        new_data["best_bid_qty"],
-                        new_data["best_ask_qty"],
-                        new_data["mark_price"],
-                        new_data["last_price"],
-                        datetime.fromtimestamp(new_data["timestamp"] / 1000.0),
-                        "BINANCE",
-                    ),
-                )
-                self.db_manager.commit()
+                values = []
+                for new_data in self.data_batch:
+                    coin_id = self.get_or_create_coin_id(new_data["symbol"])
+                    if coin_id:
+                        values.append(
+                            (
+                                coin_id,
+                                datetime.fromtimestamp(new_data["timestamp"] / 1000.0),
+                                new_data["best_bid"],
+                                new_data["best_ask"],
+                                new_data["best_bid_qty"],
+                                new_data["best_ask_qty"],
+                                new_data["mark_price"],
+                                new_data["last_price"],
+                                datetime.fromtimestamp(new_data["timestamp"] / 1000.0),
+                                "BINANCE",
+                            )
+                        )
 
-        except Exception as e:
-            logging.error(f"Error inserting data into DB: {e}")
-            self.db_manager.conn.rollback()  # Rollback the transaction on error
+                if values:
+                    self.db_manager.cursor.executemany(insert_query, values)
+                    self.db_manager.commit()
+
+                self.data_batch = []  # Clear the batch after insertion
+
+            except Exception as e:
+                logging.error(f"Error inserting batch into DB: {e}")
+                self.db_manager.conn.rollback()
+
+    def get_or_create_coin_id(self, symbol):
+        coin_id = self.db_manager.execute_query(
+            "SELECT coin_id FROM coins_table WHERE coin_name = %s",
+            (symbol,),
+        )
+        if not coin_id:
+            coin_id = self.db_manager.execute_query(
+                "INSERT INTO coins_table (coin_name) VALUES (%s) RETURNING coin_id",
+                (symbol,),
+            )
+            coin_id = coin_id[0][0] if coin_id else None
+        else:
+            coin_id = coin_id[0][0]
+        return coin_id
 
     def message_handler(self, _, message):
         try:
@@ -84,9 +94,7 @@ class WSCryptoPriceTracker:
                     "last_price": None,
                     "timestamp": message["E"],
                 }
-            elif (
-                "p" in message and "r" in message and "T" in message
-            ):  # markPrice messages
+            elif "p" in message and "r" in message and "T" in message:
                 parsed_data = {
                     "symbol": message["s"],
                     "best_bid": None,
@@ -98,11 +106,10 @@ class WSCryptoPriceTracker:
                     "timestamp": message["E"],
                 }
 
-            try:
-                self.insert_data_into_db(parsed_data)
-                print(f"Data inserted: {parsed_data}")
-            except Exception as e:
-                print(f"Error inserting data into DB: {e, parsed_data}")
+            with self.lock:
+                self.data_batch.append(parsed_data)
+
+            time.sleep(0.5)  # Sleep for 0.1 second
 
         except Exception as e:
             logging.error(f"Error in message_handler: {e}")
@@ -129,7 +136,8 @@ class WSCryptoPriceTracker:
         try:
             self.start(coins)
             while True:
-                time.sleep(1)
+                time.sleep(1)  # Sleep for 1 second
+                self.insert_batch_into_db()  # Insert batch into DB every second
         except KeyboardInterrupt:
             logging.info("Script interrupted by user.")
         finally:

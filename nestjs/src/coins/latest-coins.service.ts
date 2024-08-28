@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { LatestCoinData } from './latest-coins.entity';
+import { LatestCoinData } from './entities/latest-coins.entity';
 
 @Injectable()
 export class LatestCoinDataService {

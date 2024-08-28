@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Coin } from './coins.entity';
+import { Coin } from '../coins.entity';
 
 @Entity('latest_coin_data_table')
 export class LatestCoinData {

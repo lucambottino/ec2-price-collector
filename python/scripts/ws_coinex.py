@@ -103,7 +103,7 @@ class CoinexWebSocket:
             parsed_data = {
                 "symbol": data["market"],
                 "best_bid": data["best_bid_price"],
-                "best_ask": data["best_ask_size"],
+                "best_ask": data["best_ask_price"],
                 "best_bid_qty": data["best_bid_size"],
                 "best_ask_qty": data["best_ask_size"],
                 "mark_price": None,
@@ -113,7 +113,7 @@ class CoinexWebSocket:
 
             try:
                 self.insert_data_into_db(parsed_data)
-                print(f"Data inserted coin into DB: {parsed_data}")
+                # print(f"Data inserted coin into DB: {parsed_data}")
             except Exception as e:
                 print(f"Error inserting data into DB: {e, parsed_data}")
 
