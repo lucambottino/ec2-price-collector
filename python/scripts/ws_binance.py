@@ -4,18 +4,18 @@ from datetime import datetime, timezone
 from db_manager import DBManager
 from coin_list import COIN_LIST
 
-
 class BinanceFuturesTicker:
     def __init__(self, symbols):
         self.symbols = symbols
         self.db_manager = DBManager()  # Initialize the DBManager
+        self.session = None  # Initialize aiohttp session to None
 
     async def get_book_ticker_and_mark_price(self, symbol):
-        async with aiohttp.ClientSession() as session:
+        try:
             book_ticker_url = (
                 f"https://fapi.binance.com/fapi/v1/ticker/bookTicker?symbol={symbol}"
             )
-            async with session.get(book_ticker_url) as book_ticker_response:
+            async with self.session.get(book_ticker_url) as book_ticker_response:
                 if book_ticker_response.status == 200:
                     book_ticker_data = await book_ticker_response.json()
                 else:
@@ -27,7 +27,7 @@ class BinanceFuturesTicker:
             mark_price_url = (
                 f"https://fapi.binance.com/fapi/v1/premiumIndex?symbol={symbol}"
             )
-            async with session.get(mark_price_url) as mark_price_response:
+            async with self.session.get(mark_price_url) as mark_price_response:
                 if mark_price_response.status == 200:
                     mark_price_data = await mark_price_response.json()
                 else:
@@ -49,6 +49,10 @@ class BinanceFuturesTicker:
                 "mark_price": float(mark_price_data.get("markPrice", 0)),
             }
             return combined_data
+
+        except Exception as e:
+            print(f"Exception in fetching data for {symbol}: {e}")
+            return None
 
     def save_to_database(self, data):
         query = """
@@ -75,19 +79,25 @@ class BinanceFuturesTicker:
             print(f"Error saving data to database: {e}")
 
     async def run(self):
+        self.session = aiohttp.ClientSession()  # Initialize the session once
         try:
             while True:
                 tasks = [
                     self.get_book_ticker_and_mark_price(symbol)
                     for symbol in self.symbols
                 ]
-                results = await asyncio.gather(*tasks)
-                for data in results:
-                    if data:
-                        print(f"Data for {data['symbol']}: {data}")
-                        self.save_to_database(data)
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                for result in results:
+                    if isinstance(result, Exception):
+                        print(f"Task failed with exception: {result}")
+                    elif result:
+                        print(f"Data for {result['symbol']}: {result}")
+                        self.save_to_database(result)
+
                 await asyncio.sleep(0.5)
         finally:
+            await self.session.close()  # Ensure the session is closed
             self.db_manager.close()  # Close the database connection when done
 
 
