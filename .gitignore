@@ -4,6 +4,7 @@ data/*
 reset_docker.sh
 coinex_instance_keys.pem
 price-collector-sa.pem
+price-collector-arm.pem
 node_modules
 python/scripts/__pycache__/
 *.pyc
