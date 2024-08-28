@@ -109,6 +109,8 @@ class WSCryptoPriceTracker:
             with self.lock:
                 self.data_batch.append(parsed_data)
 
+            time.sleep(0.5)  # Sleep for 0.1 second
+
         except Exception as e:
             logging.error(f"Error in message_handler: {e}")
 
