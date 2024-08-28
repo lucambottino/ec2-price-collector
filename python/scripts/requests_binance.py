@@ -1,5 +1,6 @@
 import aiohttp
 import asyncio
+import time
 
 class BinanceFuturesTicker:
     def __init__(self, symbols):
@@ -40,13 +41,12 @@ class BinanceFuturesTicker:
 
     async def run(self):
         while True:
-            tasks = [asyncio.create_task(self.get_book_ticker_and_mark_price(symbol)) for symbol in self.symbols]
-            done, _ = await asyncio.wait(tasks, timeout=1.0)
-            for task in done:
-                data = task.result()
+            tasks = [self.get_book_ticker_and_mark_price(symbol) for symbol in self.symbols]
+            results = await asyncio.gather(*tasks)
+            for data in results:
                 if data:
                     print(f"Data for {data['symbol']}: {data}")
-            await asyncio.sleep(0.5)  # Wait for 0.5 seconds before the next request
+            await asyncio.sleep(0.5)  # Wait for 1 second before the next request
 
 if __name__ == "__main__":
     symbols = ['INJUSDT', 'CRVUSDT', 'ETHUSDT']  # Replace with your desired symbols
