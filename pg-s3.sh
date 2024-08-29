@@ -38,7 +38,7 @@ else
 fi
 
 # Fixed environment variables
-POSTGRES_HOST=localhost
+POSTGRES_HOST=ec2-price-collector-postgres-1  # Update this to your Docker service name
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=coinex-prices
@@ -64,69 +64,58 @@ for TABLE in "${!TABLES[@]}"; do
     EXPORT_FILE="/tmp/${TABLE}_old_data_$(date +\%Y\%m\%d).$FORMAT"
 
     if [ -n "$DATE_COLUMN" ]; then
-        if [ "$DAYS" -eq 0 ]; then
-            log_message "Exporting ALL data from table $TABLE to $EXPORT_FILE."
-            if [ "$FORMAT" == "csv" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH CSV HEADER"
-            elif [ "$FORMAT" == "text" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
-            elif [ "$FORMAT" == "binary" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
-            fi
-        else
-            log_message "Exporting data older than $DAYS days from table $TABLE using $DATE_COLUMN to $EXPORT_FILE."
-            if [ "$FORMAT" == "csv" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH CSV HEADER"
-            elif [ "$FORMAT" == "text" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
-            elif [ "$FORMAT" == "binary" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
-            fi
-        fi
-
-        if [ $? -eq 0 ]; then
-            log_message "Data export from table $TABLE successful."
-        else
-            log_message "Data export from table $TABLE failed."
-            continue
-        fi
-        
-        # Upload the exported file to S3
-        log_message "Uploading $EXPORT_FILE to S3."
-        aws s3 cp $EXPORT_FILE s3://$S3_BUCKET/ --region $REGION
-        
-        if [ $? -eq 0 ]; then
-            log_message "Upload of $EXPORT_FILE successful."
-        else
-            log_message "Upload of $EXPORT_FILE failed."
-            continue
-        fi
-        
-        # Delete the exported file after upload
-        log_message "Deleting the exported file $EXPORT_FILE."
-        rm $EXPORT_FILE
-        
-        if [ $? -eq 0 ]; then
-            log_message "Exported file $EXPORT_FILE deleted."
-        else
-            log_message "Failed to delete exported file $EXPORT_FILE."
-        fi
-        
-        # Delete data from the table only if --delete is specified
-        if [ "$NO_DELETE" = false ]; then
-            log_message "Deleting ALL data from table $TABLE."
-            PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE;"
-
-            if [ $? -eq 0 ]; then
-                log_message "All data deletion from table $TABLE successful."
-            else
-                log_message "All data deletion from table $TABLE failed."
-            fi
-        else
-            log_message "No --delete option passed. Skipping data deletion for table $TABLE."
+        log_message "Running query: SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days';"
+        if [ "$FORMAT" == "csv" ]; then
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH CSV HEADER"
+        elif [ "$FORMAT" == "text" ]; then
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
+        elif [ "$FORMAT" == "binary" ]; then
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
         fi
     else
         log_message "Skipping table $TABLE because it doesn't have a date column."
+    fi
+
+    if [ $? -eq 0 ]; then
+        log_message "Data export from table $TABLE successful."
+    else
+        log_message "Data export from table $TABLE failed."
+        continue
+    fi
+    
+    # Upload the exported file to S3
+    log_message "Uploading $EXPORT_FILE to S3."
+    aws s3 cp $EXPORT_FILE s3://$S3_BUCKET/ --region $REGION
+    
+    if [ $? -eq 0 ]; then
+        log_message "Upload of $EXPORT_FILE successful."
+    else
+        log_message "Upload of $EXPORT_FILE failed."
+        continue
+    fi
+    
+    # Delete the exported file after upload
+    log_message "Deleting the exported file $EXPORT_FILE."
+    rm $EXPORT_FILE
+    
+    if [ $? -eq 0 ]; then
+        log_message "Exported file $EXPORT_FILE deleted."
+    else
+        log_message "Failed to delete exported file $EXPORT_FILE."
+    fi
+    
+    # Delete data from the table only if --delete is specified
+    if [ "$NO_DELETE" = false ]; then
+        log_message "Deleting ALL data from table $TABLE."
+        PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days';"
+
+        if [ $? -eq 0 ]; then
+            log_message "All data deletion from table $TABLE successful."
+        else
+            log_message "All data deletion from table $TABLE failed."
+        fi
+    else
+        log_message "No --delete option passed. Skipping data deletion for table $TABLE."
     fi
 done
 
