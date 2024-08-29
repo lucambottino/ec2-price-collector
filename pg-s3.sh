@@ -38,7 +38,7 @@ else
 fi
 
 # Fixed environment variables
-POSTGRES_HOST=ec2-price-collector-postgres-1  # Update this to your Docker service name
+POSTGRES_HOST=localhost  # Update this to your Docker service name
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=coinex-prices
