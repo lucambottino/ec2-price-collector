@@ -8,13 +8,15 @@ log_message() {
 # Start logging
 log_message "Script started."
 
-# Initialize no_delete flag
-NO_DELETE=false
+# Initialize NO_DELETE as true by default
+NO_DELETE=true
 
-# Check for --no-delete option
-if [[ "$*" == *"--no-delete"* ]]; then
-    NO_DELETE=true
-    log_message "--no-delete option detected. Data will not be deleted after export."
+# Check for --delete option to allow deletion
+if [[ "$*" == *"--delete"* ]]; then
+    NO_DELETE=false
+    log_message "--delete option detected. Data will be deleted after export."
+else
+    log_message "No --delete option detected. Data will not be deleted after export."
 fi
 
 # Check if an argument is provided for the number of days
@@ -28,7 +30,7 @@ fi
 
 # Check if an argument is provided for the format
 if [ -z "$2" ]; then
-    log_message "No format argument provided. Defaulting to CSV."
+    log_message "No format argument provided. Defaulting to binary."
     FORMAT="binary"
 else
     FORMAT=$2
@@ -99,7 +101,7 @@ for TABLE in "${!TABLES[@]}"; do
             log_message "Failed to delete exported file $EXPORT_FILE."
         fi
         
-        # Delete data from the table unless --no-delete is specified
+        # Delete data from the table only if --delete is specified
         if [ "$NO_DELETE" = false ]; then
             log_message "Deleting ALL data from table $TABLE."
             PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE;"
@@ -110,7 +112,7 @@ for TABLE in "${!TABLES[@]}"; do
                 log_message "All data deletion from table $TABLE failed."
             fi
         else
-            log_message "--no-delete option is set. Skipping data deletion for table $TABLE."
+            log_message "No --delete option passed. Skipping data deletion for table $TABLE."
         fi
     else
         log_message "Skipping table $TABLE because it doesn't have a date column."
