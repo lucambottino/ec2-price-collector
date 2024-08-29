@@ -37,11 +37,22 @@ else
     log_message "Exporting data in $FORMAT format."
 fi
 
-# Load environment variables from .env file
-log_message "Loading environment variables."
-set -a
-source "$(dirname "$0")/.env"
-set +a
+# Fixed environment variables
+POSTGRES_HOST=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=coinex-prices
+POSTGRES_PORT=5432
+S3_BUCKET=coins-prices
+REGION=sa-east-1
+
+# Log the fixed environment variables to ensure they are set correctly
+log_message "POSTGRES_HOST is set to: $POSTGRES_HOST"
+log_message "POSTGRES_USER is set to: $POSTGRES_USER"
+log_message "POSTGRES_DB is set to: $POSTGRES_DB"
+log_message "POSTGRES_PORT is set to: $POSTGRES_PORT"
+log_message "S3_BUCKET is set to: $S3_BUCKET"
+log_message "REGION is set to: $REGION"
 
 # Define the tables and their respective date columns
 declare -A TABLES
@@ -56,20 +67,20 @@ for TABLE in "${!TABLES[@]}"; do
         if [ "$DAYS" -eq 0 ]; then
             log_message "Exporting ALL data from table $TABLE to $EXPORT_FILE."
             if [ "$FORMAT" == "csv" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH CSV HEADER"
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH CSV HEADER"
             elif [ "$FORMAT" == "text" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE) TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
             elif [ "$FORMAT" == "binary" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
             fi
         else
             log_message "Exporting data older than $DAYS days from table $TABLE using $DATE_COLUMN to $EXPORT_FILE."
             if [ "$FORMAT" == "csv" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH CSV HEADER"
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH CSV HEADER"
             elif [ "$FORMAT" == "text" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy (SELECT * FROM $TABLE WHERE $DATE_COLUMN < NOW() - INTERVAL '$DAYS days') TO '$EXPORT_FILE' WITH DELIMITER E'\t'"
             elif [ "$FORMAT" == "binary" ]; then
-                PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
+                PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "\copy $TABLE TO '$EXPORT_FILE' WITH BINARY"
             fi
         fi
 
@@ -104,7 +115,7 @@ for TABLE in "${!TABLES[@]}"; do
         # Delete data from the table only if --delete is specified
         if [ "$NO_DELETE" = false ]; then
             log_message "Deleting ALL data from table $TABLE."
-            PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE;"
+            PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -p $POSTGRES_PORT -c "DELETE FROM $TABLE;"
 
             if [ $? -eq 0 ]; then
                 log_message "All data deletion from table $TABLE successful."
