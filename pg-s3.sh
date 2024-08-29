@@ -38,7 +38,7 @@ else
 fi
 
 # Fixed environment variables
-POSTGRES_HOST=postgres
+POSTGRES_HOST=ec2-price-collector-postgres-1
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=coinex-prices
