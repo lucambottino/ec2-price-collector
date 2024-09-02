@@ -33,63 +33,88 @@ export default function LatestCoinData() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Function to calculate bid-ask spread
-  const calculateSpread = (bid, ask) => {
-    if (bid !== null && ask !== null) {
-      return (ask - bid).toFixed(4);
+  // Function to calculate bid and ask spreads
+  const calculateSpreads = (coinex, binance) => {
+    if (
+      coinex.best_bid !== null &&
+      coinex.best_ask !== null &&
+      binance.best_bid !== null &&
+      binance.best_ask !== null
+    ) {
+      const bidSpread = (
+        (coinex.best_bid / binance.best_ask - 1) *
+        100
+      ).toFixed(2);
+      const askSpread = (
+        (coinex.best_ask / binance.best_bid - 1) *
+        100
+      ).toFixed(2);
+      return { bidSpread, askSpread };
     }
-    return "N/A";
+    return { bidSpread: "N/A", askSpread: "N/A" };
   };
 
-  // Function to render data in a grid-like layout
-  const renderGrid = (data, exchangeName) => (
-    <div className="exchange-container w-full mb-6">
-      <h2 className="text-lg font-semibold text-gray-300 mb-2">
-        {exchangeName}
-      </h2>
-      <div className="grid grid-cols-1 gap-4">
-        {data.length > 0 ? (
-          data.map((coin) => (
-            <div
-              key={coin.data_id}
-              className="grid grid-cols-4 p-3 bg-gray-800 rounded-md shadow"
+  // Function to render data in a compact table with alternating row colors
+  const renderTable = () => {
+    return binanceData.map((binanceCoin) => {
+      const coinexCoin = coinexData.find(
+        (coin) => coin.coin.coin_name === binanceCoin.coin.coin_name
+      );
+
+      if (coinexCoin) {
+        const { bidSpread, askSpread } = calculateSpreads(
+          coinexCoin,
+          binanceCoin
+        );
+
+        return (
+          <tr
+            key={binanceCoin.data_id}
+            className="hover:bg-gray-700 text-xs sm:text-sm even:bg-gray-800 odd:bg-gray-700"
+          >
+            <td className="p-1 sm:p-2 text-center text-white font-semibold">
+              {binanceCoin.coin.coin_name}
+            </td>
+            <td
+              className={`p-1 sm:p-2 text-center ${
+                bidSpread >= 0 ? "text-green-500" : "text-red-500"
+              }`}
             >
-              <div className="coin-name col-span-1 text-white font-bold">
-                {coin.coin.coin_name}
-              </div>
-              <div className="value col-span-1 text-green-400 font-medium">
-                <span>Bid:</span>{" "}
-                {coin.best_bid !== null ? coin.best_bid.toFixed(4) : "N/A"}
-              </div>
-              <div className="value col-span-1 text-red-400 font-medium">
-                <span>Ask:</span>{" "}
-                {coin.best_ask !== null ? coin.best_ask.toFixed(4) : "N/A"}
-              </div>
-              <div className="value col-span-1 text-blue-400 font-medium">
-                <span>Spread:</span>{" "}
-                {calculateSpread(coin.best_bid, coin.best_ask)}
-              </div>
-              <div className="value col-span-1 text-yellow-400 font-medium">
-                <span>Mark:</span>{" "}
-                {coin.mark_price !== null ? coin.mark_price.toFixed(4) : "N/A"}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="grid-item text-gray-400">Loading...</div>
-        )}
-      </div>
-    </div>
-  );
+              {bidSpread}%
+            </td>
+            <td
+              className={`p-1 sm:p-2 text-center ${
+                askSpread >= 0 ? "text-green-500" : "text-red-500"
+              }`}
+            >
+              {askSpread}%
+            </td>
+          </tr>
+        );
+      }
+
+      return null;
+    });
+  };
 
   return (
-    <div className="trading-dashboard min-h-screen bg-gray-900 p-10">
-      <h1 className="text-2xl font-bold text-center text-gray-100 mb-8">
-        Live Coin Data
-      </h1>
-      <div className="data-container flex justify-center gap-10">
-        {renderGrid(binanceData, "BINANCE")}
-        {renderGrid(coinexData, "COINEX")}
+    <div className="trading-dashboard min-h-screen bg-gray-900 flex justify-center items-center p-4 sm:p-6">
+      <div className="w-full max-w-5xl mx-4 sm:mx-8 lg:mx-12">
+        <h1 className="text-lg sm:text-xl font-bold text-center text-gray-100 mb-4 sm:mb-6">
+          COINEX/BINANCE
+        </h1>
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-gray-900 text-gray-100 border border-gray-700 rounded-lg">
+            <thead>
+              <tr className="bg-gray-800 text-xs sm:text-sm">
+                <th className="p-2 text-center">Coin</th>
+                <th className="p-2 text-center">Bid Spread (%)</th>
+                <th className="p-2 text-center">Ask Spread (%)</th>
+              </tr>
+            </thead>
+            <tbody>{renderTable()}</tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
