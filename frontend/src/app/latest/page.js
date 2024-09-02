@@ -70,7 +70,7 @@ export default function LatestCoinData() {
         return (
           <tr
             key={binanceCoin.data_id}
-            className="hover:bg-gray-700 text-xs sm:text-sm even:bg-gray-800 odd:bg-gray-700"
+            className="hover:bg-gray-600 text-xs sm:text-sm even:bg-gray-800 odd:bg-gray-700"
           >
             <td className="p-1 sm:p-2 text-center text-white font-semibold">
               {binanceCoin.coin.coin_name}
