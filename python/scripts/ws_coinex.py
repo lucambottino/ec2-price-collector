@@ -6,7 +6,7 @@ import requests
 from dotenv import load_dotenv
 from datetime import datetime
 from db_manager import DBManager
-from coin_list import COIN_LIST
+from fetch_coins import get_coins
 import os
 
 
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     print(f"Access ID: {access_id}")
     print(f"Signed String: {signed_str}")
 
-    coinex_ws = CoinexWebSocket(access_id, signed_str, COIN_LIST, db_manager)
+    coinex_ws = CoinexWebSocket(access_id, signed_str, get_coins(), db_manager)
     try:
         coinex_ws.run()
     finally:

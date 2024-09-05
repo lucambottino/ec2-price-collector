@@ -5,8 +5,8 @@ from threading import Lock
 from datetime import datetime
 from dotenv import load_dotenv
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
-from coin_list import COIN_LIST
 from db_manager import DBManager
+from fetch_coins import get_coins
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -147,4 +147,4 @@ class WSCryptoPriceTracker:
 
 if __name__ == "__main__":
     ws_manager = WSCryptoPriceTracker()
-    ws_manager.run(COIN_LIST)
+    ws_manager.run(get_coins())
