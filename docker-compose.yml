@@ -90,7 +90,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/coins"]  # Use localhost for health check
+      test: ["CMD", "curl", "-f", "http://localhost:3000/coins/healthcheck"]  # Use localhost for health check
       interval: 3s   # Check every 30 seconds
       timeout: 2s    # Timeout after 10 seconds
       retries: 5      # Retry 5 times before marking as unhealthy

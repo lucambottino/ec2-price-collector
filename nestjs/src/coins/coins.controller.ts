@@ -21,6 +21,12 @@ export class CoinsController {
     return this.coinsService.findAll();
   }
 
+  //healthcheck
+  @Get('healthcheck')
+  async healthCheck(): Promise<string> {
+    return 'OK';
+  }
+
   @Get('data/:coin_name')
   async getDataByCoinName(
     @Param('coin_name') coin_name: string,
