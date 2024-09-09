@@ -3,7 +3,7 @@ import requests
 from threading import Timer
 
 # API URL for fetching the coin list
-API_URL = "http://nestjs:3000/coins"
+API_URL = "http://54.232.212.194:3000/coins"
 
 # Cache the COIN_LIST
 COIN_LIST = os.getenv("COIN_LIST", "").split(",")
