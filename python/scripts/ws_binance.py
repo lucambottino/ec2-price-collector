@@ -2,7 +2,7 @@ import aiohttp
 import asyncio
 from datetime import datetime, timezone
 from db_manager import DBManager
-from fetch_coins import get_coins
+from coin_list import get_coins
 
 
 class BinanceFuturesTicker:
