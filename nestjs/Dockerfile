@@ -32,9 +32,7 @@ COPY .env ./
 # Expose the application port
 EXPOSE 3000
 
+RUN apk --no-cache add curl
+
 # Define the command to run the application
 CMD ["node", "dist/main"]
-
-# Optional: Add a health check to ensure the container is healthy
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s \
-    CMD curl -f http://localhost:3000/health || exit 1

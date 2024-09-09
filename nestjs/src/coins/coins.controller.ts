@@ -7,6 +7,8 @@ import {
   Delete,
   Put,
   Query,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { CoinsService } from './coins.service';
 import { Coin } from './coins.entity';
@@ -23,8 +25,15 @@ export class CoinsController {
 
   //healthcheck
   @Get('healthcheck')
-  async healthCheck(): Promise<string> {
-    return 'OK';
+  async healthCheck(): Promise<HttpStatus> {
+    try {
+      return HttpStatus.OK;
+    } catch (error) {
+      throw new HttpException(
+        'Health check failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Get('data/:coin_name')
