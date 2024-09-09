@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Ensure the initialization scripts are executable
-RUN chmod +x /app/scripts/ws_coinex.py /app/scripts/ws_binance.py
+RUN chmod +x /app/scripts/ws_coinex.py /app/scripts/ws_binance.py /app/scripts/coin_list.py
 
 # Default command to keep the container running (e.g., start ws_coinex or ws_binance)
 CMD ["bash"]

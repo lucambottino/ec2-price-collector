@@ -55,6 +55,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  coin_list:
+    build: ./python
+    restart: always
+    command: ["python", "/app/scripts/coin_list.py"]
+    volumes:
+      - ./python:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
   # adminer:
   #   image: adminer
   #   restart: always
