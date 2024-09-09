@@ -104,4 +104,5 @@ class BinanceFuturesTicker:
 
 if __name__ == "__main__":
     ticker = BinanceFuturesTicker(get_coins())
+    print(get_coins())
     asyncio.run(ticker.run())
