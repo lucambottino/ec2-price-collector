@@ -130,7 +130,9 @@ class CoinexWebSocket:
         print(f"Sent authentication message: {auth_message}")
 
         # Fetch the updated coin list every time the WebSocket opens
-        coins = get_coins()
+        # TODO
+        coins = ["INJUSDT", "AXSUSDT", "DYDXUSDT", "CRVUSDT", "LTCUSDT"]
+
         subscription_message = self.create_subscription_request(coins)
         ws.send(subscription_message)
         print(f"Sent subscription message for coins: {coins}")

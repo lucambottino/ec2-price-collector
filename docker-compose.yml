@@ -33,7 +33,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_HOST: ${POSTGRES_HOST}
       DB_PORT: ${POSTGRES_PORT}
-    command: ["python", "/app/scripts/ws_coinex.py", "&&", "python", "/app/scripts/coin_list.py"]
+    command: ["python", "/app/scripts/ws_coinex.py"]
     volumes:
       - ./python:/app
     depends_on:
@@ -49,8 +49,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_HOST: ${POSTGRES_HOST}
       DB_PORT: ${POSTGRES_PORT}
-    # command: ["python", "/app/scripts/ws_binance.py"]
-    command: ["python", "/app/scripts/ws_binance.py", "&&", "python", "/app/scripts/coin_list.py"]
+    command: ["python", "/app/scripts/ws_binance.py"]
     volumes:
       - ./python:/app
     depends_on:

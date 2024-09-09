@@ -90,7 +90,13 @@ class BinanceFuturesTicker:
 
                 tasks = [
                     self.get_book_ticker_and_mark_price(symbol)
-                    for symbol in get_coins()
+                    for symbol in [
+                        "INJUSDT",
+                        "AXSUSDT",
+                        "DYDXUSDT",
+                        "CRVUSDT",
+                        "LTCUSDT",
+                    ]
                 ]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
