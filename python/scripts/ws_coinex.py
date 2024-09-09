@@ -11,10 +11,9 @@ import os
 
 
 class CoinexWebSocket:
-    def __init__(self, access_id, signed_str, coins, db_manager):
+    def __init__(self, access_id, signed_str, db_manager):
         self.access_id = access_id
         self.signed_str = signed_str
-        self.coins = coins
         self.db_manager = db_manager
 
     def authenticate_request(self, timestamp=None):
@@ -38,10 +37,10 @@ class CoinexWebSocket:
         decompressed_str = decompressed_bytes.decode("utf-8")
         return json.loads(decompressed_str)
 
-    def create_subscription_request(self):
+    def create_subscription_request(self, coins):
         payload = {
             "method": "bbo.subscribe",
-            "params": {"market_list": self.coins},
+            "params": {"market_list": coins},
             "id": 1,
         }
         return json.dumps(payload)
@@ -113,7 +112,6 @@ class CoinexWebSocket:
 
             try:
                 self.insert_data_into_db(parsed_data)
-                # print(f"Data inserted coin into DB: {parsed_data}")
             except Exception as e:
                 print(f"Error inserting data into DB: {e, parsed_data}")
 
@@ -124,16 +122,18 @@ class CoinexWebSocket:
         print(f"WebSocket closed: {close_status_code}, {close_msg}")
         print("Reconnecting...")
         time.sleep(0.5)
-        self.run()
+        self.run()  # Reconnect after a short delay
 
     def on_open(self, ws):
         auth_message = self.authenticate_request()
         ws.send(auth_message)
         print(f"Sent authentication message: {auth_message}")
 
-        subscription_message = self.create_subscription_request()
+        # Fetch the updated coin list every time the WebSocket opens
+        coins = get_coins()
+        subscription_message = self.create_subscription_request(coins)
         ws.send(subscription_message)
-        print(f"Sent subscription message: {subscription_message}")
+        print(f"Sent subscription message for coins: {coins}")
 
     def run(self):
         websocket_url = "wss://socket.coinex.com/v2/futures"
@@ -157,8 +157,8 @@ if __name__ == "__main__":
     print(f"Access ID: {access_id}")
     print(f"Signed String: {signed_str}")
 
-    COIN_LIST = ["INJUSDT", "AXSUSDT", "DYDXUSDT", "CRVUSDT", "LTCUSDT"]
-    coinex_ws = CoinexWebSocket(access_id, signed_str, COIN_LIST, db_manager)
+    # You no longer need a static coin list, so remove COIN_LIST here
+    coinex_ws = CoinexWebSocket(access_id, signed_str, db_manager)
     try:
         coinex_ws.run()
     finally:

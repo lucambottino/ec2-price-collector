@@ -83,9 +83,14 @@ class BinanceFuturesTicker:
         self.session = aiohttp.ClientSession()  # Initialize the session once
         try:
             while True:
+                # tasks = [
+                #     self.get_book_ticker_and_mark_price(symbol)
+                #     for symbol in self.symbols
+                # ]
+
                 tasks = [
                     self.get_book_ticker_and_mark_price(symbol)
-                    for symbol in self.symbols
+                    for symbol in get_coins()
                 ]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
