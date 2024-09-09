@@ -103,6 +103,5 @@ class BinanceFuturesTicker:
 
 
 if __name__ == "__main__":
-    COIN_LIST = get_coins()
-    ticker = BinanceFuturesTicker(COIN_LIST)
+    ticker = BinanceFuturesTicker(get_coins())
     asyncio.run(ticker.run())
