@@ -157,7 +157,9 @@ if __name__ == "__main__":
     print(f"Access ID: {access_id}")
     print(f"Signed String: {signed_str}")
 
-    coinex_ws = CoinexWebSocket(access_id, signed_str, get_coins(), db_manager)
+    COIN_LIST = get_coins()
+
+    coinex_ws = CoinexWebSocket(access_id, signed_str, COIN_LIST, db_manager)
     try:
         coinex_ws.run()
     finally:
