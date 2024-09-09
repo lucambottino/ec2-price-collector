@@ -65,6 +65,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      nestjs:
+        condition: service_healthy
   # adminer:
   #   image: adminer
   #   restart: always
