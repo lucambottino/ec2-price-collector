@@ -1,15 +1,32 @@
 import aiohttp
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from db_manager import DBManager
-from coin_list import get_coins
 
 
 class BinanceFuturesTicker:
-    def __init__(self, symbols):
-        self.symbols = symbols
-        self.db_manager = DBManager()  # Initialize the DBManager
-        self.session = None  # Initialize aiohttp session to None
+    def __init__(self):
+        self.symbols = []
+        self.session = None
+        self.next_update_time = datetime.now(timezone.utc)
+        self.db_manager = DBManager()
+
+    async def update_symbols(self):
+        if datetime.now(timezone.utc) >= self.next_update_time:
+            try:
+                coin_url = "http://nestjs:3000/coins"
+                async with self.session.get(coin_url) as response:
+                    if response.status == 200:
+                        coins_data = await response.json()
+                        self.symbols = [coin["coin_name"] for coin in coins_data]
+                        self.next_update_time += timedelta(days=1)
+                        print(f"Updated symbols: {self.symbols}")
+                    else:
+                        print(
+                            f"Failed to fetch coin list, HTTP status: {response.status}"
+                        )
+            except Exception as e:
+                print(f"Error fetching coin list from NestJS backend: {e}")
 
     async def get_book_ticker_and_mark_price(self, symbol):
         try:
@@ -45,7 +62,7 @@ class BinanceFuturesTicker:
                 "askQty": float(book_ticker_data.get("askQty", 0)),
                 "time": datetime.fromtimestamp(
                     book_ticker_data.get("time", 0) / 1000, timezone.utc
-                ),  # Convert to timezone-aware datetime
+                ),
                 "lastUpdateId": book_ticker_data.get("lastUpdateId", 0),
                 "mark_price": float(mark_price_data.get("markPrice", 0)),
             }
@@ -75,28 +92,24 @@ class BinanceFuturesTicker:
                     data["mark_price"],
                 ),
             )
-            self.db_manager.commit()  # Commit the transaction
+            self.db_manager.commit()
         except Exception as e:
             print(f"Error saving data to database: {e}")
 
     async def run(self):
-        self.session = aiohttp.ClientSession()  # Initialize the session once
+        self.session = aiohttp.ClientSession()
         try:
             while True:
-                # tasks = [
-                #     self.get_book_ticker_and_mark_price(symbol)
-                #     for symbol in self.symbols
-                # ]
+                await self.update_symbols()
+
+                if not self.symbols:
+                    print("No symbols available, skipping data fetch.")
+                    await asyncio.sleep(3600)  # Sleep for an hour if no symbols
+                    continue
 
                 tasks = [
                     self.get_book_ticker_and_mark_price(symbol)
-                    for symbol in [
-                        "INJUSDT",
-                        "AXSUSDT",
-                        "DYDXUSDT",
-                        "CRVUSDT",
-                        "LTCUSDT",
-                    ]
+                    for symbol in self.symbols
                 ]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -107,13 +120,12 @@ class BinanceFuturesTicker:
                         print(f"Data for {result['symbol']}: {result}")
                         self.save_to_database(result)
 
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.5)  # Modify sleep duration as needed
         finally:
-            await self.session.close()  # Ensure the session is closed
-            self.db_manager.close()  # Close the database connection when done
+            await self.session.close()
+            self.db_manager.close()
 
 
 if __name__ == "__main__":
-    COIN_LIST = ["INJUSDT", "AXSUSDT", "DYDXUSDT", "CRVUSDT", "LTCUSDT"]
-    ticker = BinanceFuturesTicker(COIN_LIST)
+    ticker = BinanceFuturesTicker()
     asyncio.run(ticker.run())

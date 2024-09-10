@@ -2,11 +2,9 @@ import json
 import time
 import websocket
 import gzip
-import requests
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from db_manager import DBManager
-from coin_list import get_coins
 import os
 
 
@@ -15,11 +13,14 @@ class CoinexWebSocket:
         self.access_id = access_id
         self.signed_str = signed_str
         self.db_manager = db_manager
+        self.next_update_time = datetime.now(
+            timezone.utc
+        )  # Initialize the update time first
+        self.coins = self.update_coin_list()  # Now it's safe to call update_coin_list
 
     def authenticate_request(self, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time() * 1000)
-
         payload = {
             "method": "server.sign",
             "params": {
@@ -45,13 +46,22 @@ class CoinexWebSocket:
         }
         return json.dumps(payload)
 
+    def update_coin_list(self):
+        if datetime.now(timezone.utc) >= self.next_update_time:
+            query = "SELECT coin_name FROM coins_table;"
+            result = self.db_manager.execute_query(query)
+            self.coins = [coin[0] for coin in result]
+            self.next_update_time += timedelta(
+                days=1
+            )  # Update the next time we need to refresh
+            print(f"Coin list updated: {self.coins}")
+        return self.coins  # Return the current list of coins
+
     def insert_data_into_db(self, parsed_data):
         try:
             timestamp = datetime.fromtimestamp(parsed_data["timestamp"] / 1000.0)
-
             query = "SELECT coin_id FROM coins_table WHERE coin_name = %s"
             coin_id = self.db_manager.execute_query(query, (parsed_data["symbol"],))
-
             if not coin_id:
                 insert_coin_query = (
                     "INSERT INTO coins_table (coin_name) VALUES (%s) RETURNING coin_id"
@@ -67,9 +77,7 @@ class CoinexWebSocket:
                 insert_data_query = """
                 INSERT INTO coin_data_table (
                     coin_id, timestamp, best_bid, best_ask, best_bid_qty, best_ask_qty, mark_price, last_price, updated_at, exchange
-                ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-                );
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
                 """
                 self.db_manager.cursor.execute(
                     insert_data_query,
@@ -89,16 +97,13 @@ class CoinexWebSocket:
                 self.db_manager.commit()
             else:
                 print("Error: Could not find or insert coin_id")
-
         except Exception as e:
             print(f"Error inserting data into DB: {e}")
 
     def on_message(self, ws, message):
         parsed_msg = self.decompress_message(message)
-
         if "data" in parsed_msg:
             data = parsed_msg["data"]
-
             parsed_data = {
                 "symbol": data["market"],
                 "best_bid": data["best_bid_price"],
@@ -109,7 +114,6 @@ class CoinexWebSocket:
                 "last_price": None,
                 "timestamp": data["updated_at"],
             }
-
             try:
                 self.insert_data_into_db(parsed_data)
             except Exception as e:
@@ -122,17 +126,13 @@ class CoinexWebSocket:
         print(f"WebSocket closed: {close_status_code}, {close_msg}")
         print("Reconnecting...")
         time.sleep(0.5)
-        self.run()  # Reconnect after a short delay
+        self.run()
 
     def on_open(self, ws):
         auth_message = self.authenticate_request()
         ws.send(auth_message)
         print(f"Sent authentication message: {auth_message}")
-
-        # Fetch the updated coin list every time the WebSocket opens
-        # TODO
-        coins = ["INJUSDT", "AXSUSDT", "DYDXUSDT", "CRVUSDT", "LTCUSDT"]
-
+        coins = self.update_coin_list()
         subscription_message = self.create_subscription_request(coins)
         ws.send(subscription_message)
         print(f"Sent subscription message for coins: {coins}")
@@ -151,15 +151,9 @@ class CoinexWebSocket:
 
 if __name__ == "__main__":
     load_dotenv()
-
     db_manager = DBManager()
-
     access_id = os.getenv("APIKEYCOINEX")
     signed_str = os.getenv("APISECRETKEYCOINEX")
-    print(f"Access ID: {access_id}")
-    print(f"Signed String: {signed_str}")
-
-    # You no longer need a static coin list, so remove COIN_LIST here
     coinex_ws = CoinexWebSocket(access_id, signed_str, db_manager)
     try:
         coinex_ws.run()

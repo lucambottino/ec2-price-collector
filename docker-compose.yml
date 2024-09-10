@@ -22,49 +22,6 @@ services:
       timeout: 5s
       retries: 5
 
-  ws_coinex:
-    build: ./python
-    restart: always
-    environment:
-      APIKEYCOINEX: ${APIKEYCOINEX}
-      APISECRETKEYCOINEX: ${APISECRETKEYCOINEX}
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_HOST: ${POSTGRES_HOST}
-      DB_PORT: ${POSTGRES_PORT}
-    command: ["python", "/app/scripts/ws_coinex.py"]
-    volumes:
-      - ./python:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  ws_binance:
-    build: ./python
-    restart: always
-    environment:
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_HOST: ${POSTGRES_HOST}
-      DB_PORT: ${POSTGRES_PORT}
-    command: ["python", "/app/scripts/ws_binance.py"]
-    volumes:
-      - ./python:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-
-  # adminer:
-  #   image: adminer
-  #   restart: always
-  #   ports:
-  #     - 8080:8080
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
   nestjs:
     build: ./nestjs
     restart: always
@@ -85,6 +42,44 @@ services:
       timeout: 2s     # Timeout after 10 seconds
       retries: 20       # Retry 5 times before marking it as unhealthy
 
+  ws_coinex:
+    build: ./python
+    restart: always
+    environment:
+      APIKEYCOINEX: ${APIKEYCOINEX}
+      APISECRETKEYCOINEX: ${APISECRETKEYCOINEX}
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT}
+    command: ["python", "/app/scripts/ws_coinex.py"]
+    volumes:
+      - ./python:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nestjs:
+        condition: service_healthy
+
+  ws_binance:
+    build: ./python
+    restart: always
+    environment:
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT}
+    command: ["python", "/app/scripts/ws_binance.py"]
+    volumes:
+      - ./python:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nestjs:
+        condition: service_healthy
+
   frontend:
     build: ./frontend
     restart: always
@@ -99,18 +94,6 @@ services:
       - "3001:3001"
     depends_on:
       postgres:
-        condition: service_healthy
-
-  coin_list:
-    build: ./python
-    restart: always
-    command: ["python", "/app/scripts/coin_list.py"]
-    volumes:
-      - ./python:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      nestjs:
         condition: service_healthy
 volumes:
   pgdata:
