@@ -14,9 +14,15 @@ export class Coin {
   @Column()
   precision_coinex: number;
 
-  @Column()
+  @Column('float')
   min_amount_binance: number;
 
-  @Column()
+  @Column('float')
   min_amount_coinex: number;
+
+  @Column()
+  trading: boolean;
+
+  @Column()
+  collecting: boolean;
 }

@@ -51,6 +51,11 @@ export class CoinsController {
     return this.coinsService.createCoin(coin);
   }
 
+  @Post('reset-trading')
+  async resetTrading(): Promise<void> {
+    return this.coinsService.resetTradingStatus();
+  }
+
   @Delete(':id')
   async deleteCoin(@Param('id') id: number): Promise<void> {
     return this.coinsService.delete(id);
@@ -61,17 +66,17 @@ export class CoinsController {
     return this.coinsService.deleteByName(name);
   }
 
-  @Put(':id')
-  async updateCoin(@Param('id') id: number, @Body() coin: Coin): Promise<Coin> {
-    return this.coinsService.updateCoin(id, coin);
-  }
-
-  @Put(':name')
-  async updateCoinByName(
-    @Param('name') name: string,
+  @Put(':identifier')
+  async updateCoin(
+    @Param('identifier') identifier: string,
     @Body() coin: Coin,
   ): Promise<Coin> {
-    return this.coinsService.updateCoinByName(name, coin);
+    // Check if the identifier is numeric (ID) or string (name)
+    if (!isNaN(Number(identifier))) {
+      return this.coinsService.updateCoin(Number(identifier), coin);
+    } else {
+      return this.coinsService.updateCoinByName(identifier, coin);
+    }
   }
 
   @Patch(':id')

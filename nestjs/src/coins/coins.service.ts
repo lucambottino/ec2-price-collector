@@ -149,4 +149,8 @@ export class CoinsService {
   async deleteByName(name: string): Promise<void> {
     await this.coinsRepository.delete({ coin_name: name });
   }
+
+  async resetTradingStatus(): Promise<void> {
+    await this.coinsRepository.update({}, { trading: false });
+  }
 }

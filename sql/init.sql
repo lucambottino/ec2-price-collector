@@ -13,7 +13,9 @@ CREATE TABLE IF NOT EXISTS coins_table (
     precision_binance INT,
     precision_coinex INT,
     min_amount_binance REAL,
-    min_amount_coinex REAL
+    min_amount_coinex REAL,
+    trading BOOLEAN DEFAULT FALSE,
+    collecting BOOLEAN DEFAULT FALSE
 );
 
 
