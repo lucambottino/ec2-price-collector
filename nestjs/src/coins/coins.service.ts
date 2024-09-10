@@ -105,28 +105,48 @@ export class CoinsService {
       .getMany();
   }
 
-  // Create a new coin
-  create(coin_name: string): Promise<Coin> {
-    const coin = this.coinsRepository.create({ coin_name });
+  //create coin
+  async createCoin(coin: Coin): Promise<Coin> {
     return this.coinsRepository.save(coin);
   }
 
-  // Update a coin's data
-  async updateCoinData(
-    id: number,
-    updateData: Partial<CoinData>,
-  ): Promise<CoinData> {
-    await this.coinDataRepository.update(id, updateData);
-    return this.coinDataRepository.findOne({ where: { data_id: id } });
+  async updateCoin(id: number, coinData: Partial<Coin>): Promise<Coin> {
+    await this.coinsRepository.update(id, coinData);
+    // Use an explicit condition structure for the 'where' clause
+    return this.coinsRepository.findOne({
+      where: { coin_id: id }, // Assuring that 'id' is recognized as a valid property
+    });
   }
 
-  // Delete a coin
-  async remove(id: number): Promise<void> {
+  async updatePartial(id: number, coinData: Partial<Coin>): Promise<Coin> {
+    await this.coinsRepository.update(id, coinData);
+    return this.coinsRepository.findOne({
+      where: { coin_id: id },
+    });
+  }
+
+  async updateCoinByName(name: string, coinData: Partial<Coin>): Promise<Coin> {
+    await this.coinsRepository.update({ coin_name: name }, coinData);
+    return this.coinsRepository.findOne({
+      where: { coin_name: name },
+    });
+  }
+
+  async updatePartialByName(
+    name: string,
+    coinData: Partial<Coin>,
+  ): Promise<Coin> {
+    await this.coinsRepository.update({ coin_name: name }, coinData);
+    return this.coinsRepository.findOne({
+      where: { coin_name: name },
+    });
+  }
+
+  async delete(id: number): Promise<void> {
     await this.coinsRepository.delete(id);
   }
 
-  // Delete coin data
-  async removeCoinData(id: number): Promise<void> {
-    await this.coinDataRepository.delete(id);
+  async deleteByName(name: string): Promise<void> {
+    await this.coinsRepository.delete({ coin_name: name });
   }
 }

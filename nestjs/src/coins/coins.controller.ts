@@ -9,6 +9,7 @@ import {
   Query,
   HttpException,
   HttpStatus,
+  Patch,
 } from '@nestjs/common';
 import { CoinsService } from './coins.service';
 import { Coin } from './coins.entity';
@@ -43,6 +44,50 @@ export class CoinsController {
     @Query('offset') offset: number = 0,
   ): Promise<CoinData[]> {
     return this.coinsService.findAllByCoinName(coin_name, limit, offset);
+  }
+
+  @Post()
+  async createCoin(@Body() coin: Coin): Promise<Coin> {
+    return this.coinsService.createCoin(coin);
+  }
+
+  @Delete(':id')
+  async deleteCoin(@Param('id') id: number): Promise<void> {
+    return this.coinsService.delete(id);
+  }
+
+  @Delete(':name')
+  async deleteCoinByName(@Param('name') name: string): Promise<void> {
+    return this.coinsService.deleteByName(name);
+  }
+
+  @Put(':id')
+  async updateCoin(@Param('id') id: number, @Body() coin: Coin): Promise<Coin> {
+    return this.coinsService.updateCoin(id, coin);
+  }
+
+  @Put(':name')
+  async updateCoinByName(
+    @Param('name') name: string,
+    @Body() coin: Coin,
+  ): Promise<Coin> {
+    return this.coinsService.updateCoinByName(name, coin);
+  }
+
+  @Patch(':id')
+  async updateCoinPartial(
+    @Param('id') id: number,
+    @Body() coin: Partial<Coin>,
+  ): Promise<Coin> {
+    return this.coinsService.updatePartial(id, coin);
+  }
+
+  @Patch(':name')
+  async updateCoinPartialByName(
+    @Param('name') name: string,
+    @Body() coin: Partial<Coin>,
+  ): Promise<Coin> {
+    return this.coinsService.updatePartialByName(name, coin);
   }
 
   @Get('exchange/:exchange')
