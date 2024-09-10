@@ -9,8 +9,13 @@ END $$;
 -- Create coins_table if it doesn't exist
 CREATE TABLE IF NOT EXISTS coins_table (
     coin_id SERIAL PRIMARY KEY,
-    coin_name TEXT UNIQUE NOT NULL
+    coin_name TEXT UNIQUE NOT NULL,
+    precision_binance INT,
+    precision_coinex INT,
+    min_amount_binance REAL,
+    min_amount_coinex REAL
 );
+
 
 -- Create coin_data_table if it doesn't exist
 CREATE TABLE IF NOT EXISTS coin_data_table (
